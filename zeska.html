@@ -1,0 +1,182 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeska Portfolio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #0f0f0f, #1c1c1c);
+      color: #f5f5f5;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(0,0,0,0.8);
+      padding: 50px 20px;
+      text-align: center;
+      position: relative;
+      animation: fadeInDown 1.2s ease;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 3rem;
+      color: #00ffae;
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+    nav {
+      margin-top: 20px;
+    }
+    nav a {
+      color: #f5f5f5;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    nav a:hover {
+      color: #00ffae;
+      transform: scale(1.1);
+    }
+
+    section {
+      padding: 60px 20px;
+      max-width: 1000px;
+      margin: auto;
+      opacity: 0;
+      transform: translateY(40px);
+      animation: fadeInUp 1s forwards;
+    }
+    section:nth-child(odd) { animation-delay: 0.5s; }
+    section:nth-child(even) { animation-delay: 1s; }
+
+    h2 {
+      color: #00ffae;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    h2::after {
+      content: '';
+      position: absolute;
+      width: 50px;
+      height: 3px;
+      background: #00ffae;
+      bottom: -10px;
+      left: 0;
+      border-radius: 2px;
+      animation: slideIn 1s ease forwards;
+    }
+
+    .project {
+      background: rgba(255,255,255,0.05);
+      margin: 15px 0;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      transition: 0.4s;
+      transform: scale(1);
+    }
+    .project:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+      background: rgba(0,255,174,0.1);
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      background: #111;
+      margin-top: 50px;
+      font-size: 0.9rem;
+    }
+
+    /* Animations */
+    @keyframes glow {
+      from { text-shadow: 0 0 5px #00ffae, 0 0 10px #00ffae; }
+      to   { text-shadow: 0 0 20px #00ffaa, 0 0 40px #00ffaa; }
+    }
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { width: 0; }
+      to { width: 50px; }
+    }
+
+    /* Floating Background Graphics */
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0,255,174,0.2);
+      animation: float 10s infinite;
+    }
+    .circle.small { width: 80px; height: 80px; bottom: 20%; right: 15%; }
+    .circle.big { width: 200px; height: 200px; top: 10%; left: 10%; }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-30px); }
+      100% { transform: translateY(0px); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Hey, I'm Zeska 🚀</h1>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#projects">Projects</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="circle big"></div>
+    <div class="circle small"></div>
+  </header>
+
+  <section id="about">
+    <h2>About Me</h2>
+    <p>
+      I'm a developer building apps, websites, and cool tech ideas. 
+      Passionate about coding, startups, and solving problems with technology. 
+      This is my personal portfolio site ✨.
+    </p>
+  </section>
+
+  <section id="projects">
+    <h2>Projects</h2>
+    <div class="project">
+      <h3>Attendance App</h3>
+      <p>A voice-based attendance system using Flutter + SQLite.</p>
+    </div>
+    <div class="project">
+      <h3>Stock Manager</h3>
+      <p>An offline stock management app with PDF export feature.</p>
+    </div>
+    <div class="project">
+      <h3>Billing System</h3>
+      <p>Simple desktop billing app to learn invoicing and UI design.</p>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <p>Email: <a href="mailto:youremail@example.com">youremail@example.com</a></p>
+    <p>GitHub: <a href="https://github.com/yourusername" target="_blank">github.com/yourusername</a></p>
+    <p>Insta: <a href="https://instagram.com/yourhandle" target="_blank">@yourhandle</a></p>
+  </section>
+
+  <footer>
+    © 2025 Zeska | Built with ❤️, HTML & CSS
+  </footer>
+
+</body>
+</html>
