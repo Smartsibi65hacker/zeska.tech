@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Video Carousel</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .slider-wrapper {
+    width: 350px;
+    overflow: hidden;
+    border: 2px solid #e60073;
+    border-radius: 10px;
+    padding: 10px;
+    background: #222;
+  }
+  .slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+  }
+  .slide {
+    min-width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+  }
+  video {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .desc {
+    font-size: 14px;
+    color: #ccc;
+  }
+  .buttons {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+  }
+  button {
+    padding: 10px 20px;
+    background: #e60073;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="slider-wrapper">
+  <div class="slides" id="slides">
+    <!-- Slide 1 -->
+    <div class="slide">
+      <h3>Project 1: Voice Attendance App</h3>
+      <video controls>
+        <source src="sample1.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p class="desc">Flutter + SQLite based offline attendance system demo.</p>
+    </div>
+    <!-- Slide 2 -->
+    <div class="slide">
+      <h3>Project 2: Portfolio Website</h3>
+      <video controls>
+        <source src="sample2.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p class="desc">Responsive HTML/CSS portfolio site demo.</p>
+    </div>
+    <!-- Slide 3 -->
+    <div class="slide">
+      <h3>Project 3: Stock Management App</h3>
+      <video controls>
+        <source src="sample3.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p class="desc">Flutter offline stock manager app demo with PDF reports.</p>
+    </div>
+  </div>
+
+  <div class="buttons">
+    <button onclick="prevSlide()">⬅ Previous</button>
+    <button onclick="nextSlide()">Next ➡</button>
+  </div>
+</div>
+
+<script>
+  let currentIndex = 0;
+  const slides = document.getElementById('slides');
+  const totalSlides = slides.children.length;
+
+  function nextSlide() {
+    currentIndex++;
+    if(currentIndex >= totalSlides) currentIndex = 0;
+    slides.style.transform = `translateX(-${currentIndex * 100}%)`;
+  }
+
+  function prevSlide() {
+    currentIndex--;
+    if(currentIndex < 0) currentIndex = totalSlides - 1;
+    slides.style.transform = `translateX(-${currentIndex * 100}%)`;
+  }
+</script>
+
+</body>
+</html>
