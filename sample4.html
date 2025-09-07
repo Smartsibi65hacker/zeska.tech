@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZESKA — Cinematic Portfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#07060b;
+      --bg2:#0d0a14;
+      --ink:#e9e7ff;
+      --accent:#a855f7; /* purple */
+      --accent2:#6ee7ff; /* cyan */
+      --glass: rgba(255,255,255,0.06);
+      --glass-2: rgba(168,85,247,0.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 40px rgba(168,85,247,.15);
+    }
+
+    *{ box-sizing:border-box }
+    html,body{ height:100%; }
+    body{
+      margin:0; background: radial-gradient(1200px 800px at 80% -10%, rgba(168,85,247,.15), transparent),
+                               radial-gradient(900px 700px at -10% 110%, rgba(110,231,255,.12), transparent),
+                               linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--ink); font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial; overflow:hidden;
+    }
+
+    /* Cursor/Avatar-style particle trail canvas sits on top but doesn't block clicks */
+    #trailCanvas{ position:fixed; inset:0; z-index:999; pointer-events:none; }
+
+    /* Stage wrappers */
+    .stage{ position:fixed; inset:0; display:grid; place-items:center; }
+    .hide{ display:none; }
+
+    /* Preloader */
+    #preloader{ z-index:50; background: radial-gradient(800px 600px at 50% 40%, rgba(168,85,247,.12), transparent), linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.6)); backdrop-filter: blur(2px); }
+    #logoText{ font-weight:800; font-size: clamp(3rem, 9vw, 8rem); letter-spacing:.15em; text-transform:uppercase; text-align:center; line-height:1; 
+      text-shadow: 0 0 18px rgba(168,85,247,.65), 0 0 44px rgba(110,231,255,.25);
+      background: linear-gradient(90deg, #fff, #d9ccff 30%, #a855f7 60%, #6ee7ff 90%);
+      -webkit-background-clip:text; background-clip:text; color: transparent;
+      filter: drop-shadow(0 0 12px rgba(168,85,247,.35));
+      transform: translateY(10px);
+    }
+    #tapHint{ margin-top:14px; font-weight:600; opacity:.75; letter-spacing:.08em; }
+    #pulseDot{ display:inline-block; width:.6em; height:.6em; background:var(--accent); border-radius:999px; margin-left:.35em; box-shadow:0 0 12px var(--accent); animation:pulse 1.2s infinite; }
+    @keyframes pulse { 0%{ transform:scale(.9); opacity:.7 } 70%{ transform:scale(1.25); opacity:1 } 100%{ transform:scale(.9); opacity:.7 } }
+
+    /* Assemble stage (Avengers vibe) */
+    #assemble{ z-index:40; }
+    .chipWrap{ position:relative; width:min(1000px, 86vw); height:min(600px, 60vh); }
+    .chip{ position:absolute; padding:.7rem 1rem; border-radius:999px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+           color:#fff; background: linear-gradient(90deg, rgba(168,85,247,.35), rgba(110,231,255,.35));
+           box-shadow: var(--shadow); border:1px solid rgba(255,255,255,.08); backdrop-filter: blur(6px);
+           transform: translate(-50%,-50%);
+    }
+    .chip::after{ content:''; position:absolute; inset:-3px; border-radius:inherit; box-shadow:0 0 20px rgba(168,85,247,.35) inset; pointer-events:none }
+
+    .centerMark{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); font-size: clamp(1.2rem,3vw,1.6rem); opacity:.8 }
+
+    /* Home grid */
+    main#home{ z-index:10; padding: clamp(16px, 3vw, 28px); display:flex; flex-direction:column; gap:24px; height:100vh; }
+    .topBar{ display:flex; align-items:center; justify-content:space-between; }
+    .brand{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 10px var(--accent); }
+
+    .grid{ flex:1; display:grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 1fr; gap:16px; }
+    .card{ grid-column: span 6; background:var(--glass); border:1px solid rgba(255,255,255,.06); border-radius:20px; box-shadow: var(--shadow);
+           display:flex; align-items:flex-end; padding:22px; position:relative; overflow:hidden; cursor:pointer; isolation:isolate;
+           transition: transform .25s ease;
+    }
+    .card:hover{ transform: translateY(-4px); }
+    .card h3{ z-index:2; margin:0; font-size: clamp(1.2rem, 3vw, 2rem); }
+    .card .bgGlow{ position:absolute; inset:-30%; background: radial-gradient(600px 300px at var(--mx,50%) var(--my,50%), rgba(168,85,247,.22), transparent 60%); z-index:1; transition: .2s; }
+
+    .card.stock{ background: linear-gradient(180deg, rgba(110,231,255,.08), rgba(168,85,247,.04)); }
+    .card.web{ background: linear-gradient(180deg, rgba(168,85,247,.08), rgba(110,231,255,.04)); }
+    .card.hack{ background: linear-gradient(180deg, rgba(255,87,87,.08), rgba(168,85,247,.04)); }
+    .card.app{ background: linear-gradient(180deg, rgba(0,255,171,.08), rgba(168,85,247,.04)); }
+
+    @media (max-width: 900px){ .card{ grid-column: span 12 } }
+
+    /* Panels (detail pages) */
+    .panel{ position:fixed; inset:0; background: linear-gradient(180deg, rgba(7,6,11,.96), rgba(13,10,20,.98)); transform: translateY(100%);
+            z-index:70; display:flex; flex-direction:column; }
+    .panelHeader{ display:flex; align-items:center; justify-content:space-between; padding:18px 20px; border-bottom:1px solid rgba(255,255,255,.06); backdrop-filter: blur(6px); }
+    .panelTitle{ font-weight:800; letter-spacing:.08em; text-transform:uppercase }
+    .backBtn{ appearance:none; border:1px solid rgba(255,255,255,.12); background:var(--glass-2); color:#fff; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; box-shadow: var(--shadow); }
+    .panelBody{ flex:1; padding:24px; display:grid; place-items:center; gap:18px; }
+    .panelCard{ width:min(950px,92vw); background:var(--glass); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:22px; box-shadow: var(--shadow); }
+
+    /* Footer */
+    footer{ text-align:center; opacity:.7; padding:10px; font-size:.9rem }
+  </style>
+</head>
+<body>
+  <canvas id="trailCanvas"></canvas>
+
+  <!-- Stage 1: Preloader / ZESKA only -->
+  <section id="preloader" class="stage">
+    <div style="text-align:center">
+      <div id="logoText">ZESKA</div>
+      <div id="tapHint">Tap / Click to enter <span id="pulseDot"></span></div>
+    </div>
+  </section>
+
+  <!-- Stage 2: Avengers-like assemble of components -->
+  <section id="assemble" class="stage hide">
+    <div class="chipWrap">
+      <div class="centerMark">assembling…</div>
+      <div class="chip" id="chip-stock">Stock</div>
+      <div class="chip" id="chip-web">Web</div>
+      <div class="chip" id="chip-hack">Hacking</div>
+      <div class="chip" id="chip-app">App</div>
+    </div>
+  </section>
+
+  <!-- Stage 3: Home grid -->
+  <main id="home" class="hide">
+    <div class="topBar">
+      <div class="brand"><span class="dot"></span> ZESKA</div>
+      <nav style="opacity:.9; display:flex; gap:14px;">
+        <a href="#" data-open="stock" style="color:#fff; text-decoration:none">Stock</a>
+        <a href="#" data-open="web" style="color:#fff; text-decoration:none">Web</a>
+        <a href="#" data-open="hack" style="color:#fff; text-decoration:none">Hack</a>
+        <a href="#" data-open="app" style="color:#fff; text-decoration:none">App</a>
+      </nav>
+    </div>
+
+    <div class="grid">
+      <div class="card stock" data-open="stock">
+        <div class="bgGlow"></div>
+        <h3>Stock — Analytics & Dash</h3>
+      </div>
+      <div class="card web" data-open="web">
+        <div class="bgGlow"></div>
+        <h3>Web — 3D/GSAP Sites</h3>
+      </div>
+      <div class="card hack" data-open="hack">
+        <div class="bgGlow"></div>
+        <h3>Hack — Sec & Tools</h3>
+      </div>
+      <div class="card app" data-open="app">
+        <div class="bgGlow"></div>
+        <h3>App — Flutter / Desktop</h3>
+      </div>
+    </div>
+
+    <footer>© 2025 ZESKA — Black × Purple • Built with ❤️</footer>
+  </main>
+
+  <!-- Panels (one-file internal pages) -->
+  <section id="panel-stock" class="panel" aria-hidden="true">
+    <div class="panelHeader">
+      <div class="panelTitle">Stock</div>
+      <button class="backBtn" data-back>Back</button>
+    </div>
+    <div class="panelBody">
+      <div class="panelCard">
+        <h2>Stock Analytics</h2>
+        <p>Dashboards, indicators, and alert systems. Coming soon: webhook bots + TradingView integrations.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-web" class="panel" aria-hidden="true">
+    <div class="panelHeader">
+      <div class="panelTitle">Web</div>
+      <button class="backBtn" data-back>Back</button>
+    </div>
+    <div class="panelBody">
+      <div class="panelCard">
+        <h2>Web — 3D / Motion</h2>
+        <p>Active-Theory inspired motion design using Three.js, GSAP, and custom shaders.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-hack" class="panel" aria-hidden="true">
+    <div class="panelHeader">
+      <div class="panelTitle">Hacking</div>
+      <button class="backBtn" data-back>Back</button>
+    </div>
+    <div class="panelBody">
+      <div class="panelCard">
+        <h2>Security / Tools</h2>
+        <p>Personal research playground. Ethical-only demos. More soon.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="panel-app" class="panel" aria-hidden="true">
+    <div class="panelHeader">
+      <div class="panelTitle">Apps</div>
+      <button class="backBtn" data-back>Back</button>
+    </div>
+    <div class="panelBody">
+      <div class="panelCard">
+        <h2>Apps</h2>
+        <p>Flutter, desktop utilities, and experiments with offline-first design.</p>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    // ======= Cursor "Avatar" particle trail (2D canvas) =======
+    const tCanvas = document.getElementById('trailCanvas');
+    const tCtx = tCanvas.getContext('2d');
+    let W, H; const DPR = Math.min(2, window.devicePixelRatio || 1);
+    function size(){ W = tCanvas.width = innerWidth * DPR; H = tCanvas.height = innerHeight * DPR; tCtx.scale(DPR, DPR); }
+    size(); addEventListener('resize', size);
+
+    const particles = [];
+    const MAX = 120;
+    const mouse = { x: innerWidth/2, y: innerHeight/2 };
+
+    function addParticle(x,y){
+      particles.push({ x, y, vx:(Math.random()-0.5)*1.5, vy:(Math.random()-0.5)*1.5, r: Math.random()*2+1, life: 1 });
+      if(particles.length>MAX) particles.shift();
+    }
+
+    addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; for(let i=0;i<4;i++) addParticle(mouse.x, mouse.y); });
+    addEventListener('touchmove', e=>{ const t=e.touches[0]; mouse.x=t.clientX; mouse.y=t.clientY; for(let i=0;i<4;i++) addParticle(mouse.x, mouse.y); }, {passive:true});
+
+    function tick(){
+      tCtx.clearRect(0,0,innerWidth,innerHeight);
+      // Glow background pass
+      for(const p of particles){
+        p.x += p.vx; p.y += p.vy; p.vx *= 0.985; p.vy *= 0.985; p.life *= 0.985; p.r *= 0.997;
+        const g = tCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 40);
+        g.addColorStop(0, `rgba(168,85,247, ${0.22*p.life})`);
+        g.addColorStop(0.6, `rgba(110,231,255, ${0.08*p.life})`);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        tCtx.fillStyle = g; tCtx.beginPath(); tCtx.arc(p.x, p.y, 40, 0, Math.PI*2); tCtx.fill();
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+
+    // ======= Preloader → Assemble → Home transitions =======
+    const preloader = document.getElementById('preloader');
+    const assemble = document.getElementById('assemble');
+    const home = document.getElementById('home');
+
+    function show(el){ el.classList.remove('hide'); }
+    function hide(el){ el.classList.add('hide'); }
+
+    preloader.addEventListener('click', startSequence);
+    preloader.addEventListener('touchstart', startSequence, {passive:true});
+
+    function startSequence(){
+      preloader.removeEventListener('click', startSequence);
+      const tl = gsap.timeline({ defaults:{ ease:'power3.inOut' } });
+      tl.to('#logoText', { y:-40, duration:.7 })
+        .to('#tapHint', { y:10, opacity:0, duration:.4 }, '<')
+        .to('#preloader', { opacity:0, duration:.6, onComplete: ()=>{ hide(preloader); show(assemble); assembleSequence(); } });
+    }
+
+    function placeChips(){
+      const wrap = document.querySelector('.chipWrap');
+      const rect = wrap.getBoundingClientRect();
+      const center = { x: rect.width/2, y: rect.height/2 };
+      const chips = [
+        { id:'chip-stock', from:{x:-120, y:center.y}, to:{x:center.x-140, y:center.y-90} },
+        { id:'chip-web',   from:{x:rect.width+120, y:center.y}, to:{x:center.x+150, y:center.y-20} },
+        { id:'chip-hack',  from:{x:center.x, y:-120}, to:{x:center.x-60, y:center.y+110} },
+        { id:'chip-app',   from:{x:center.x, y:rect.height+120}, to:{x:center.x+60, y:center.y+70} }
+      ];
+      chips.forEach(c=>{
+        const el = document.getElementById(c.id);
+        gsap.set(el,{ x:c.from.x, y:c.from.y });
+        c.el = el;
+      });
+      return { chips, center };
+    }
+
+    function assembleSequence(){
+      const { chips, center } = placeChips();
+      const tl = gsap.timeline({ defaults:{ ease:'power3.out' } });
+      tl.fromTo('.centerMark', { opacity:0 }, { opacity:1, duration:.6 })
+        .to(chips.map(c=>c.el), { x:(i)=>chips[i].to.x, y:(i)=>chips[i].to.y, duration:1.2, stagger:.12 })
+        .to(chips.map(c=>c.el), { scale:1.08, yoyo:true, repeat:1, duration:.35, ease:'power1.inOut' })
+        .to('#assemble', { opacity:0, duration:.6, delay:.15, onComplete: ()=>{ hide(assemble); show(home); enterHome(); } });
+    }
+
+    function enterHome(){
+      gsap.set('#home', { opacity:0, y:20 });
+      gsap.to('#home', { opacity:1, y:0, duration:.7, ease:'power3.out' });
+      // Cards soft float-in
+      gsap.from('.card', { y:20, opacity:0, duration:.6, stagger:.08, ease:'power3.out' });
+    }
+
+    // ======= Card hover glow follows cursor =======
+    document.querySelectorAll('.card').forEach(card=>{
+      card.addEventListener('mousemove', e=>{
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width * 100;
+        const y = (e.clientY - r.top) / r.height * 100;
+        card.style.setProperty('--mx', x+'%');
+        card.style.setProperty('--my', y+'%');
+      });
+    });
+
+    // ======= Panels open/close with slide transition =======
+    function openPanel(key){
+      const panel = document.getElementById('panel-'+key);
+      if(!panel) return;
+      panel.setAttribute('aria-hidden','false');
+      gsap.to(panel, { yPercent:0, duration:.6, ease:'power3.out' });
+    }
+    function closePanels(){
+      document.querySelectorAll('.panel').forEach(p=>{
+        p.setAttribute('aria-hidden','true');
+        gsap.to(p, { yPercent:100, duration:.55, ease:'power3.in' });
+      });
+    }
+
+    document.querySelectorAll('[data-open]').forEach(el=>{
+      el.addEventListener('click', e=>{ e.preventDefault(); openPanel(el.getAttribute('data-open')); });
+    });
+    document.querySelectorAll('[data-back]').forEach(btn=>btn.addEventListener('click', closePanels));
+    addEventListener('keydown', e=>{ if(e.key==='Escape') closePanels(); });
+  </script>
+</body>
+</html>
+
