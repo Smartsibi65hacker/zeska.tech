@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hack — Downloads</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#08080a; --red:#dc2626; --glass:rgba(255,255,255,.03); }
+    *{box-sizing:border-box}
+    body{ margin:0; min-height:100vh; font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#08080a,#0f0f12); color:#fff; padding:22px; }
+    .downloadBtn{ position:fixed; top:16px; right:16px; background:linear-gradient(90deg,#a855f7,#6ee7ff); color:#fff; padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:700; box-shadow:0 20px 60px rgba(0,0,0,.6); z-index:999; }
+
+    header{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+    h1{ font-size:28px; letter-spacing:.08em; margin:0; text-transform:uppercase; color: #ffd2d2; text-shadow: 0 0 20px rgba(220,38,38,.25); }
+
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)); gap:12px; max-width:1100px; margin:0 auto; }
+    .hack-btn{ background:var(--red); border:none; padding:12px; border-radius:10px; color:#fff; font-weight:800; cursor:pointer; text-transform:uppercase; box-shadow: 0 20px 40px rgba(220,38,38,.16); transition: transform .18s, box-shadow .18s; }
+    .hack-btn:active{ transform: translateY(2px) }
+  </style>
+</head>
+<body>
+  <a class="downloadBtn" href="https://rzp.io/rzp/1C3HdrOS" target="_blank" rel="noopener">Download</a>
+
+  <header>
+    <h1>Hack Downloads</h1>
+    <small style="opacity:.7">100 placeholders (empty function)</small>
+  </header>
+
+  <main>
+    <div class="grid" id="btnGrid" aria-live="polite"></div>
+  </main>
+
+  <script>
+    // Create 100 buttons with empty function; first button opens the Razorpay link
+    const grid = document.getElementById('btnGrid');
+    for (let i = 1; i <= 100; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'hack-btn';
+      btn.textContent = 'Download ' + i;
+
+      if (i === 1) {
+        // first button opens the provided Razorpay link in a new tab
+        btn.addEventListener('click', function (e) {
+          window.open('https://rzp.io/rzp/XAddm2a', '_blank', 'noopener');
+        });
+      } else {
+        // empty placeholder for later logic
+        btn.addEventListener('click', function (e) {
+          console.log('placeholder download', i);
+        });
+      }
+
+      grid.appendChild(btn);
+    }
+  </script>
+</body>
+</html>
