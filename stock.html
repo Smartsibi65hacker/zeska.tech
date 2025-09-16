@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Stock — Starfield Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#05060a;
+      --accent:#16a34a;
+      --glass:rgba(255,255,255,.03);
+    }
+    *{ box-sizing:border-box }
+    html,body{ margin:0; min-height:100vh; font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial; background:linear-gradient(180deg,#061017,#05121b); color:#fff; overflow:hidden; }
+
+    .downloadBtn{ position:fixed; top:16px; right:16px; background:linear-gradient(90deg,#a855f7,#6ee7ff); color:#fff; padding:10px 14px; border-radius:12px; text-decoration:none; font-weight:700; box-shadow:0 20px 60px rgba(0,0,0,.6); z-index:999; }
+
+    header{ display:flex; align-items:center; justify-content:space-between; padding:18px 24px; gap:12px; }
+    h1{ font-size:22px; margin:0; color:#c8ffd8; text-transform:uppercase; letter-spacing:.08em }
+    .sub{ opacity:.7; font-size:14px }
+
+    /* Scene -> starfield */
+    .scene { width:100%; height:calc(100vh - 76px); display:flex; align-items:center; justify-content:center; perspective:1000px; position:relative; overflow:hidden; }
+    .starfield { position:relative; width:100%; height:100%; }
+
+    /* each star item (image) */
+    .star-item {
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:220px;
+      height:140px;
+      border-radius:12px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(180deg,#0b0b0d,#151516);
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+      transition: transform .9s cubic-bezier(.2,.9,.2,1), box-shadow .5s ease, opacity .5s, width .9s ease, height .9s ease;
+      cursor:pointer;
+      transform-style:preserve-3d;
+
+      /* base transform uses CSS variables --dx/--dy/--dz and scale --s and rotation --rx/--ry */
+      transform: translate(-50%,-50%)
+                 translateX(var(--dx, 0px))
+                 translateY(var(--dy, 0px))
+                 translateZ(var(--dz, 0px))
+                 scale(var(--s, 1))
+                 rotateX(var(--rx, 0deg))
+                 rotateY(var(--ry, 0deg));
+    }
+    .star-item img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:12px; }
+
+    .star-item::after {
+      content: "";
+      position:absolute; inset:0; border-radius:inherit;
+      box-shadow: 0 0 20px rgba(255,255,255,0.02) inset;
+      pointer-events:none;
+    }
+
+    /* focused / glowing state */
+    .star-item.glow {
+      box-shadow: 0 40px 140px rgba(22,163,74,0.9), 0 0 80px rgba(22,163,74,0.6);
+      transform: translate(-50%,-50%) translateX(0px) translateY(0px) translateZ(300px) scale(0.6);
+      width: 60vw;
+      height: 60vh;
+      z-index:9999;
+    }
+
+    /* subtle floating motion (drift) using CSS variables */
+    @keyframes drift {
+      0% { transform: translate(-50%,-50%) translateX(var(--dx)) translateY(calc(var(--dy) - 6px)) translateZ(var(--dz)) rotateZ(0deg) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) }
+      50%{ transform: translate(-50%,-50%) translateX(var(--dx)) translateY(calc(var(--dy) + 6px)) translateZ(var(--dz)) rotateZ(0.3deg) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) }
+      100%{ transform: translate(-50%,-50%) translateX(var(--dx)) translateY(var(--dy)) translateZ(var(--dz)) rotateZ(0deg) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) }
+    }
+    .star-item.drift { animation: drift var(--dr, 6s) ease-in-out infinite; }
+
+    .placeholder-label{ color:#ddd; font-weight:700; letter-spacing:.06em; font-size:18px; }
+    .help{ position:fixed; left:18px; bottom:16px; opacity:.75; font-size:13px }
+
+    @media (max-width:800px){
+      .star-item{ width:160px; height:110px }
+    }
+  </style>
+</head>
+<body>
+  <a class="downloadBtn" href="https://rzp.io/rzp/1C3HdrOS" target="_blank" rel="noopener">Download</a>
+
+  <header>
+    <div>
+      <h1>Stock Gallery</h1>
+      <div class="sub">s1.jpeg → s60.jpeg — click an image to bring forward like a star</div>
+    </div>
+    <div style="opacity:.8">Total: <span id="totalCount">120</span></div>
+  </header>
+
+  <div class="scene">
+    <div class="starfield" id="starfield" aria-live="polite"></div>
+  </div>
+
+  <div class="help">Click a star to zoom it forward • It will return automatically • Press Esc to cancel</div>
+
+  <script>
+    // Starfield gallery script
+    const starfield = document.getElementById('starfield');
+    const total = 120;
+    document.getElementById('totalCount').textContent = total;
+
+    function areaSizes(){
+      return {
+        w: Math.max(window.innerWidth, 800),
+        h: Math.max(window.innerHeight - 160, 500)
+      };
+    }
+
+    const { w: areaW, h: areaH } = areaSizes();
+    const depthMin = -400;
+    const depthMax = 200;
+
+    const items = [];
+
+    // mouse tilt (performance-friendly)
+    let mouseX = window.innerWidth/2;
+    let mouseY = window.innerHeight/2;
+    let ticking = false;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const cx = window.innerWidth / 2;
+          const cy = window.innerHeight / 2;
+          const dx = (mouseX - cx) / cx;
+          const dy = (mouseY - cy) / cy;
+          items.forEach(item => {
+            if (!item.classList.contains('glow')) {
+              // set rotation vars (not appending to transform)
+              item.style.setProperty('--rx', `${(dy * 6).toFixed(2)}deg`);
+              item.style.setProperty('--ry', `${(dx * 6).toFixed(2)}deg`);
+            }
+          });
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Create star items spread like a starfield
+    for (let i = 0; i < total; i++) {
+      const el = document.createElement('div');
+      el.className = 'star-item drift';
+      el.dataset.index = i;
+
+      // random spread around center (x,y) and random depth z
+      const x = Math.round((Math.random() * areaW - areaW / 2) * 0.9);
+      const y = Math.round((Math.random() * areaH - areaH / 2) * 0.75);
+      const z = Math.round(depthMin + Math.random() * (depthMax - depthMin));
+      // scale mapped by depth: nearer items slightly larger
+      const s = (0.72 + (1 - (z - depthMin) / (depthMax - depthMin)) * 0.54).toFixed(3);
+
+      // store CSS vars inline so transforms are calc'd by CSS
+      el.style.setProperty('--dx', `${x}px`);
+      el.style.setProperty('--dy', `${y}px`);
+      el.style.setProperty('--dz', `${z}px`);
+      el.style.setProperty('--s', s);
+      el.style.setProperty('--dr', `${(4 + Math.random() * 6).toFixed(2)}s`);
+
+      // image element (fallback: placeholder label if missing)
+      const img = document.createElement('img');
+      img.alt = `s${i+1}.jpg`;
+      img.src = `assets/s${i+1}.jpg`;
+      img.onerror = function(){
+        img.style.display = 'none';
+        // don't overwrite the element if focused later; keep placeholder
+        if(!el.querySelector('.placeholder-label')) el.innerHTML = `<div class="placeholder-label">s${i+1}</div>`;
+      };
+      el.appendChild(img);
+
+      // save original vars for later restore
+      el.dataset.origDx = `${x}px`;
+      el.dataset.origDy = `${y}px`;
+      el.dataset.origDz = `${z}px`;
+      el.dataset.origS = s;
+
+      // click handler: fly forward then return
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); focusItem(el); });
+
+      starfield.appendChild(el);
+      items.push(el);
+    }
+
+    let animating = false;
+    let focusedEl = null;
+
+    function focusItem(el){
+      if (animating) return;
+      animating = true;
+
+      // if already focused, unfocus
+      if (focusedEl === el) {
+        unfocusAll();
+        animating = false;
+        return;
+      }
+
+      focusedEl = el;
+
+      // dim and disable pointers for other items
+      items.forEach(item => {
+        if (item !== el) {
+          item.style.pointerEvents = 'none';
+          item.style.transition = 'opacity .45s ease';
+          item.style.opacity = '0.18';
+        }
+      });
+
+      // Bring selected to center and forward using CSS vars (smooth)
+      el.classList.remove('drift'); // stop drift
+      el.style.setProperty('--dx', `0px`);
+      el.style.setProperty('--dy', `0px`);
+      el.style.setProperty('--dz', `300px`);
+      el.style.setProperty('--s', `0.6`);
+      el.style.setProperty('--rx','0deg');
+      el.style.setProperty('--ry','0deg');
+      el.classList.add('glow');
+      el.style.zIndex = 9999;
+
+      // Return after delay (7s): smooth revert
+      setTimeout(() => {
+        unfocusAll();
+        animating = false;
+      }, 7000);
+    }
+
+    function unfocusAll(){
+      focusedEl = null;
+      items.forEach(item => {
+        item.style.pointerEvents = 'auto';
+        item.style.opacity = '1';
+        item.classList.remove('glow');
+        // restore original vars
+        const odx = item.dataset.origDx || '0px';
+        const ody = item.dataset.origDy || '0px';
+        const odz = item.dataset.origDz || '0px';
+        const os = item.dataset.origS || '1';
+        item.style.setProperty('--dx', odx);
+        item.style.setProperty('--dy', ody);
+        item.style.setProperty('--dz', odz);
+        item.style.setProperty('--s', os);
+        item.style.setProperty('--rx','0deg');
+        item.style.setProperty('--ry','0deg');
+        // restart drift (force reflow)
+        void item.offsetWidth;
+        item.classList.add('drift');
+        item.style.zIndex = '';
+      });
+    }
+
+    // click outside or esc to unfocus early
+    document.addEventListener('click', () => { if (focusedEl) unfocusAll(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') unfocusAll(); });
+
+    // optional: keep positions stable on resize (could re-layout for new viewport)
+    window.addEventListener('resize', () => {
+      // keep the original layout to avoid jarring changes; optionally re-generate positions here
+    });
+  </script>
+</body>
+</html>
