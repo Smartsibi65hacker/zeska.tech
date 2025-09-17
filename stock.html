@@ -101,6 +101,13 @@
   </div>
 
   <div class="help">Click a star to zoom it forward • It will return automatically • Press Esc to cancel</div>
+  <button id="embedBtn" style="position:fixed; bottom:16px; right:16px; background:#16a34a; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:600; cursor:pointer; z-index:1000;">Embed</button>
+  <div id="embedContainer" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; color:#000; padding:20px; border-radius:12px; max-width:90%; max-height:90%; overflow:auto;">
+      <button onclick="document.getElementById('embedContainer').style.display='none'" style="float:right; background:red; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Close</button>
+      <div id="embedContent"></div>
+    </div>
+  </div>
 
   <script>
     // Starfield gallery script
@@ -266,6 +273,23 @@
     // optional: keep positions stable on resize (could re-layout for new viewport)
     window.addEventListener('resize', () => {
       // keep the original layout to avoid jarring changes; optionally re-generate positions here
+    });
+  </script>
+  <script>
+    const embedHtml = `
+      <div style="position: relative; width: 100%; height: 0; padding-top: 56.2500%;
+       padding-bottom: 0; box-shadow: 0 2px 8px 0 rgba(63,69,81,0.16); margin-top: 1.6em; margin-bottom: 0.9em; overflow: hidden;
+       border-radius: 8px; will-change: transform;">
+        <iframe loading="lazy" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border: none; padding: 0;margin: 0;"
+          src="https://www.canva.com/design/DAGzK6IVarU/M_VxlWF43U0IUnv_ZwdmSw/view?embed" allowfullscreen="allowfullscreen" allow="fullscreen">
+        </iframe>
+      </div>
+      <a href="https://www.canva.com/design/DAGzK6IVarU/M_VxlWF43U0IUnv_ZwdmSw/view?utm_content=DAGzK6IVarU&utm_campaign=designshare&utm_medium=embeds&utm_source=link" target="_blank" rel="noopener">Home</a> by Sibi
+    `;
+
+    document.getElementById('embedBtn').addEventListener('click', () => {
+      document.getElementById('embedContent').innerHTML = embedHtml;
+      document.getElementById('embedContainer').style.display = 'flex';
     });
   </script>
 </body>
