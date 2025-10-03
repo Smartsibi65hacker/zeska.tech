@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeska Billing - Billing History</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body { background: #f8f9fa; }
+    .bill-card { border-radius: 10px; margin-bottom: 15px; }
+    .bill-header { background: #0d6efd; color: white; padding: 10px; border-radius: 10px 10px 0 0; }
+    .bill-body { padding: 15px; }
+    .filter-row { margin-bottom: 20px; }
+    .total-box { font-weight: bold; color: #0d6efd; margin-top: 10px; }
+  </style>
+</head>
+<body class="p-4">
+
+  <div class="container">
+    <h3 class="text-center mb-4">📑 Billing History</h3>
+
+    <!-- Filters (only for Admins) -->
+    <div class="row filter-row" id="adminFilters" style="display:none;">
+      <div class="col-md-3">
+        <input type="month" id="filterMonth" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <input type="date" id="filterDate" class="form-control">
+      </div>
+      <div class="col-md-3">
+        <input type="text" id="filterUser" class="form-control" placeholder="Filter by User Email">
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-primary w-100" onclick="loadBills()">🔎 Apply Filters</button>
+      </div>
+    </div>
+
+    <!-- Search (all users) -->
+    <div class="row filter-row">
+      <div class="col-md-12">
+        <input type="text" id="searchCustomer" class="form-control" placeholder="Search by Customer Name / Number" onkeyup="loadBills()">
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div id="summary" class="alert alert-info" style="display:none;"></div>
+
+    <!-- Bills List -->
+    <div id="billsList"></div>
+
+    <!-- Admin: Download Monthly Report -->
+    <div class="text-center mt-3" id="downloadAllBtn" style="display:none;">
+      <button class="btn btn-success" onclick="downloadAllPDF()">⬇ Download Monthly Report (PDF)</button>
+    </div>
+
+    <div class="text-center mt-4">
+      <button class="btn btn-secondary" onclick="goBack()">⬅ Back to Portal</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, query, orderBy, where } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // ✅ Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
+      authDomain: "zeska-billing.firebaseapp.com",
+      projectId: "zeska-billing",
+      storageBucket: "zeska-billing.firebasestorage.app",
+      messagingSenderId: "285841508539",
+      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let currentUser = null;
+    let allBills = [];
+    const adminUIDs = [
+      "hCQy8CJt4YXOxYMehNbsLQ1WjCk1",
+      "Pmibt2j3XyfLrujCbLrDbgm5l692",
+      "qmIuS4rZWjcmCKCTCHXuQL1eciH3"
+    ];
+
+    // ✅ Load Bills
+    async function loadBills() {
+      const list = document.getElementById("billsList");
+      list.innerHTML = "<p>Loading...</p>";
+
+      let q;
+      if (adminUIDs.includes(currentUser.uid)) {
+        q = query(collection(db, "bills"), orderBy("createdAt", "desc"));
+      } else {
+        q = query(collection(db, "bills"), where("createdBy.uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
+      }
+
+      const snap = await getDocs(q);
+
+      // Filters
+      let filterDate = document.getElementById("filterDate")?.value;
+      let filterUser = document.getElementById("filterUser")?.value?.toLowerCase();
+      let searchCustomer = document.getElementById("searchCustomer")?.value?.toLowerCase();
+      let filterMonth = document.getElementById("filterMonth")?.value;
+
+      list.innerHTML = "";
+      allBills = [];
+      let totalSales = 0;
+
+      snap.forEach(docSnap => {
+        let b = docSnap.data();
+        let billDate = new Date(b.createdAt.seconds * 1000);
+        let dateStr = billDate.toLocaleString();
+
+        // Apply filters
+        if (filterDate) {
+          let onlyDate = billDate.toISOString().split("T")[0];
+          if (onlyDate !== filterDate) return;
+        }
+        if (filterMonth) {
+          let billMonth = billDate.toISOString().slice(0,7); // yyyy-mm
+          if (billMonth !== filterMonth) return;
+        }
+        if (filterUser && (!b.createdBy || !b.createdBy.email.toLowerCase().includes(filterUser))) {
+          return;
+        }
+        if (searchCustomer && !(`${b.custName||""} ${b.custNumber||""}`.toLowerCase().includes(searchCustomer))) {
+          return;
+        }
+
+        // Grand total per bill
+        let grandTotal = 0;
+        b.products?.forEach(p => grandTotal += p.total);
+        totalSales += grandTotal;
+
+        allBills.push({...b, grandTotal, dateStr});
+
+        let productsHTML = "";
+        b.products?.forEach(p => {
+          productsHTML += `<li>${p.product} (${p.size}) → ${p.qty} × ${p.rate} = ${p.total}</li>`;
+        });
+
+        list.innerHTML += `
+          <div class="card bill-card shadow-sm">
+            <div class="bill-header">
+              <b>${b.custName || "Unknown"}</b> (${b.custNumber || "No Number"}) 
+              <span class="float-end">${dateStr}</span>
+            </div>
+            <div class="bill-body">
+              <p><b>Dept:</b> ${b.dept || "-"} | <b>Payment:</b> ${b.payment || "-"}</p>
+              <ul>${productsHTML}</ul>
+              <p class="total-box">💰 Grand Total: ₹${grandTotal}</p>
+              <p><b>Created By:</b> ${b.createdBy ? b.createdBy.email : "Unknown"}</p>
+              <button class="btn btn-sm btn-outline-primary mt-2" onclick='downloadPDF(${JSON.stringify(b)})'>⬇ Download PDF</button>
+            </div>
+          </div>
+        `;
+      });
+
+      if (!list.innerHTML) {
+        list.innerHTML = "<p class='text-center text-muted'>No bills found.</p>";
+      }
+
+      // Show summary
+      if (allBills.length > 0) {
+        document.getElementById("summary").style.display = "block";
+        document.getElementById("summary").innerText = `📊 Total Bills: ${allBills.length} | 💰 Total Sales: ₹${totalSales}`;
+      } else {
+        document.getElementById("summary").style.display = "none";
+      }
+    }
+
+    // ✅ Download PDF for single bill
+    window.downloadPDF = function(bill) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y = 20;
+
+      doc.setFontSize(16);
+      doc.text("🧾 Zeska Billing", 10, y); y += 10;
+      doc.setFontSize(12);
+      doc.text(`Customer: ${bill.custName || "Unknown"} (${bill.custNumber || "No Number"})`, 10, y); y+=7;
+      doc.text(`Dept: ${bill.dept || "-"}`, 10, y); y+=7;
+      doc.text(`Payment: ${bill.payment || "-"}`, 10, y); y+=7;
+      doc.text(`Created By: ${bill.createdBy ? bill.createdBy.email : "Unknown"}`, 10, y); y+=10;
+      doc.text("Products:", 10, y); y+=7;
+
+      let grandTotal = 0;
+      bill.products?.forEach((p, idx) => {
+        doc.text(`${idx+1}. ${p.product} (${p.size}) → ${p.qty} × ${p.rate} = ${p.total}`, 15, y);
+        y += 7;
+        grandTotal += p.total;
+      });
+      y += 5;
+      doc.setFontSize(14);
+      doc.text(`💰 Grand Total: ₹${grandTotal}`, 10, y);
+      doc.save(`bill_${bill.custName || "customer"}_${Date.now()}.pdf`);
+    };
+
+    // ✅ Download Monthly Report (Admin only)
+    window.downloadAllPDF = function() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y = 20;
+
+      doc.setFontSize(18);
+      doc.text("📊 Zeska Monthly Report", 10, y); y += 15;
+
+      let totalSales = 0;
+      allBills.forEach((b, i) => {
+        if (y > 270) { doc.addPage(); y = 20; }
+
+        doc.setFontSize(12);
+        doc.text(`${i+1}. ${b.custName || "Unknown"} (${b.custNumber || "No Number"}) - ${b.dateStr}`, 10, y); y+=7;
+        doc.text(`Dept: ${b.dept} | Payment: ${b.payment} | Created By: ${b.createdBy ? b.createdBy.email : "Unknown"}`, 10, y); y+=7;
+
+        b.products?.forEach(p => {
+          doc.text(`   - ${p.product} (${p.size}) → ${p.qty} × ${p.rate} = ${p.total}`, 12, y);
+          y+=6;
+        });
+
+        doc.text(`   💰 Bill Total: ₹${b.grandTotal}`, 12, y); y+=10;
+        totalSales += b.grandTotal;
+      });
+
+      doc.setFontSize(14);
+      doc.text(`📌 Summary: Total Bills = ${allBills.length}, Total Sales = ₹${totalSales}`, 10, y+10);
+      doc.save(`zeska_report_${Date.now()}.pdf`);
+    };
+
+    // ✅ Detect logged-in user
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        if (adminUIDs.includes(user.uid)) {
+          document.getElementById("adminFilters").style.display = "flex";
+          document.getElementById("downloadAllBtn").style.display = "block";
+        }
+        loadBills();
+      } else {
+        window.location.href = "login.html";
+      }
+    });
+
+    // ✅ Back
+    window.goBack = function() {
+      window.location.href = "portal.html";
+    };
+  </script>
+</body>
+</html>
