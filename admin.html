@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeska Admin Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { background:#f8f9fa; }
+    .tab-content { margin-top:20px; }
+    .increase { color:green; font-weight:bold; }
+    .decrease { color:red; font-weight:bold; }
+  </style>
+</head>
+<body class="p-4">
+
+  <div class="container bg-white p-4 shadow rounded">
+    <h3 class="text-center mb-4">🛠️ Admin Dashboard</h3>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#billsTab" type="button">📑 Bills</button></li>
+      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logsTab" type="button">📜 Stock Logs</button></li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Bills Tab -->
+      <div class="tab-pane fade show active" id="billsTab">
+        <div class="row mb-3 mt-3">
+          <div class="col-md-4">
+            <select id="userFilter" class="form-control"><option value="">All Users</option></select>
+          </div>
+          <div class="col-md-4">
+            <button class="btn btn-primary w-100" onclick="downloadReport()">⬇ Download PDF</button>
+          </div>
+          <div class="col-md-4 text-end">
+            <button class="btn btn-secondary" onclick="goBack()">⬅ Back to Portal</button>
+          </div>
+        </div>
+        <table class="table table-bordered">
+          <thead class="table-light">
+            <tr><th>#</th><th>Customer</th><th>Dept</th><th>Payment</th><th>Total</th><th>Created By</th><th>Date</th></tr>
+          </thead>
+          <tbody id="billList"></tbody>
+        </table>
+        <div id="summary" class="mt-3"></div>
+      </div>
+
+      <!-- Stock Logs Tab -->
+      <div class="tab-pane fade" id="logsTab">
+        <table class="table table-bordered mt-3">
+          <thead class="table-light">
+            <tr><th>#</th><th>Product</th><th>Change</th><th>Old</th><th>New</th><th>Reason</th><th>User</th><th>Time</th></tr>
+          </thead>
+          <tbody id="logList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden canvas for chart export -->
+  <canvas id="chartCanvas" width="500" height="300" style="display:none;"></canvas>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
+      authDomain: "zeska-billing.firebaseapp.com",
+      projectId: "zeska-billing",
+      storageBucket: "zeska-billing.firebasestorage.app",
+      messagingSenderId: "285841508539",
+      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const adminUIDs = [
+      "hCQy8CJt4YXOxYMehNbsLQ1WjCk1",
+      "Pmibt2j3XyfLrujCbLrDbgm5l692",
+      "qmIuS4rZWjcmCKCTCHXuQL1eciH3"
+    ];
+    let bills = [], currentUser = null;
+
+    // ✅ Load Bills
+    async function loadBills() {
+      const list=document.getElementById("billList"), filter=document.getElementById("userFilter").value;
+      list.innerHTML=""; let snap=await getDocs(query(collection(db,"bills"),orderBy("createdAt","desc")));
+      bills=[]; let staffSet=new Set(); let i=1,totalSales=0;
+      snap.forEach(b=>{
+        let d=b.data(), email=d.createdBy?.email||"Unknown"; staffSet.add(email);
+        if(filter && email!==filter) return;
+        let date=d.createdAt?.toDate().toLocaleString()||"-";
+        bills.push(d);
+        list.innerHTML+=`<tr>
+          <td>${i++}</td>
+          <td>${d.custName} (${d.custNumber})</td>
+          <td>${d.dept}</td>
+          <td>${d.payment}</td>
+          <td>₹${d.grandTotal}</td>
+          <td>${email}</td>
+          <td>${date}</td>
+        </tr>`;
+        totalSales+=d.grandTotal;
+      });
+      let filterSelect=document.getElementById("userFilter");
+      filterSelect.innerHTML="<option value=''>All Users</option>";
+      staffSet.forEach(e=>{filterSelect.innerHTML+=`<option value='${e}'>${e}</option>`});
+      document.getElementById("summary").innerHTML=`<div class="alert alert-info">Total Bills: ${bills.length}, Total Sales: ₹${totalSales}</div>`;
+    }
+
+    // ✅ Load Stock Logs
+    async function loadLogs() {
+      const list=document.getElementById("logList"); list.innerHTML=""; let i=1;
+      let snap=await getDocs(query(collection(db,"stockLogs"),orderBy("createdAt","desc")));
+      snap.forEach(log=>{
+        let d=log.data(), time=d.createdAt?new Date(d.createdAt.seconds*1000).toLocaleString():"-";
+        list.innerHTML+=`<tr>
+          <td>${i++}</td>
+          <td>${d.product}</td>
+          <td class="${d.change.startsWith('+')?'increase':'decrease'}">${d.change}</td>
+          <td>${d.oldQty}</td>
+          <td>${d.newQty}</td>
+          <td>${d.reason}</td>
+          <td>${d.changedBy?.email||'Unknown'}</td>
+          <td>${time}</td>
+        </tr>`;
+      });
+    }
+
+    // ✅ PDF with Chart
+    window.downloadReport = function(){
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      let y=20,totalSales=0;
+      doc.setFontSize(14);
+      doc.text("Zeska Billing - Admin Report",20,y); y+=10;
+
+      let salesByDate={};
+      bills.forEach((b,i)=>{
+        let date=b.createdAt?.toDate().toLocaleDateString()||"-";
+        if(!salesByDate[date]) salesByDate[date]=0;
+        salesByDate[date]+=b.grandTotal;
+        doc.setFontSize(10);
+        doc.text(`${i+1}. ${b.custName} (${b.custNumber}) - ${date}`,20,y); y+=6;
+        doc.text(`Dept: ${b.dept} | Payment: ${b.payment} | By: ${b.createdBy.email}`,20,y); y+=6;
+        doc.text(`Bill Total: ₹${b.grandTotal}`,20,y); y+=8;
+        totalSales+=b.grandTotal;
+        if(y>260){doc.addPage();y=20;}
+      });
+
+      y+=10; doc.setFontSize(12);
+      doc.text(`Summary: Total Bills=${bills.length}, Total Sales=₹${totalSales}`,20,y); y+=20;
+
+      // ✅ Render Chart properly inside hidden canvas
+      let ctx=document.getElementById("chartCanvas").getContext("2d");
+      new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:Object.keys(salesByDate),
+          datasets:[{label:"Sales (₹)",data:Object.values(salesByDate),backgroundColor:"rgba(54,162,235,0.7)"}]
+        },
+        options:{
+          responsive:false,
+          animation:{
+            onComplete:()=>{
+              let img=document.getElementById("chartCanvas").toDataURL("image/png");
+              doc.addImage(img,"PNG",20,y,160,80);
+              doc.save("Admin_Report.pdf");
+            }
+          }
+        }
+      });
+    }
+
+    onAuthStateChanged(auth,(u)=>{
+      if(u){
+        currentUser=u;
+        if(!adminUIDs.includes(u.uid)){
+          alert("❌ Access Denied"); window.location.href="portal.html";
+        } else {
+          loadBills();
+          loadLogs();
+          document.getElementById("userFilter").addEventListener("change",loadBills);
+        }
+      } else {
+        window.location.href="login.html";
+      }
+    });
+
+    window.goBack=function(){window.location.href="portal.html";}
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
