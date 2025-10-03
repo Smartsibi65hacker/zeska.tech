@@ -8,13 +8,14 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   <style>
     body { background: #f8f9fa; }
-    #grandTotal { font-weight: bold; font-size: 18px; color: #0d6efd; margin-top: 10px; }
+    #grandTotalBox { font-weight: bold; font-size: 18px; color: #0d6efd; margin-top: 10px; }
+    .alert-warning { font-size: 14px; }
   </style>
 </head>
 <body class="p-4">
 
   <div class="container bg-white p-4 shadow rounded">
-    <h3 class="text-center mb-4">🧾 Generate Bill</h3>
+    <h3 id="pageTitle" class="text-center mb-4">🧾 Generate Bill</h3>
 
     <!-- ⚠️ Low Stock Alert -->
     <div id="lowStockAlert" class="alert alert-warning d-none">
@@ -78,8 +79,12 @@
       </select>
     </div>
 
-    <!-- Grand Total -->
-    <div id="grandTotal">💰 Grand Total: ₹0</div>
+    <!-- Totals -->
+    <div id="grandTotalBox">
+      Subtotal: ₹0 <br>
+      GST (0%): ₹0 <br>
+      💰 Grand Total: ₹0
+    </div>
 
     <!-- Buttons -->
     <div class="d-flex justify-content-between mt-3">
@@ -110,8 +115,23 @@
     const db = getFirestore(app);
 
     let products=[], currentUser=null, lastBill=null, isRegularCustomer=false;
+    let GST_RATE = 0; 
+    let BUSINESS_NAME = "Zeska Billing";
 
-    // ✅ Load products with quantity + check low stock
+    // ✅ Load General Settings
+    async function loadGeneralSettings(){
+      const snap = await getDoc(doc(db,"settings","general"));
+      if(snap.exists()){
+        let s = snap.data();
+        BUSINESS_NAME = s.bizName || "Zeska Billing";
+        GST_RATE = s.gst || 0;
+
+        document.getElementById("pageTitle").innerText = `🧾 ${BUSINESS_NAME} - Generate Bill`;
+        document.getElementById("payment").value = s.defaultPayment || "Cash";
+      }
+    }
+
+    // ✅ Load products with stock + low stock reminder
     async function loadProducts(){
       const prodSelect=document.getElementById("product");
       const lowStockDiv=document.getElementById("lowStockAlert");
@@ -129,7 +149,6 @@
         if(qty<10){ lowItems.push(`${p.id} (${qty})`); }
       });
 
-      // show/hide low stock alert
       if(lowItems.length>0){
         lowStockDiv.classList.remove("d-none");
         lowStockList.innerText=lowItems.join(", ");
@@ -137,7 +156,6 @@
         lowStockDiv.classList.add("d-none");
       }
     }
-    loadProducts();
 
     // ✅ Add product to bill
     window.addProduct=function(){
@@ -153,17 +171,22 @@
 
       let t=q*r;
       products.push({product:p,size:s,qty:q,rate:r,total:t});
-      document.querySelector("#productTable tbody").innerHTML+=`<tr><td>${p}</td><td>${s}</td><td>${q}</td><td>${r}</td><td>${t}</td></tr>`;
-      updateGrandTotal();
+      document.querySelector("#productTable tbody").innerHTML+=
+        `<tr><td>${p}</td><td>${s}</td><td>${q}</td><td>${r}</td><td>${t}</td></tr>`;
+      updateTotals();
 
       document.getElementById("size").value="";
       document.getElementById("qty").value="";
       document.getElementById("rate").value="";
     };
 
-    function updateGrandTotal(){
-      let total=products.reduce((sum,p)=>sum+p.total,0);
-      document.getElementById("grandTotal").innerText="💰 Grand Total: ₹"+total;
+    // ✅ Update totals (with GST)
+    function updateTotals(){
+      let subtotal=products.reduce((sum,p)=>sum+p.total,0);
+      let gstAmount=(subtotal*GST_RATE)/100;
+      let finalTotal=subtotal+gstAmount;
+      document.getElementById("grandTotalBox").innerHTML=
+        `Subtotal: ₹${subtotal}<br>GST (${GST_RATE}%): ₹${gstAmount}<br>💰 Grand Total: ₹${finalTotal}`;
     }
 
     function generateBillCode(){ return "BILL-"+Math.random().toString(36).substring(2,8).toUpperCase(); }
@@ -173,22 +196,26 @@
       if(!currentUser){alert("Not logged in");return;}
       if(products.length===0){alert("Add materials first");return;}
 
-      let billCode=generateBillCode();
-      let total=products.reduce((s,p)=>s+p.total,0);
-      let advance=parseFloat(document.getElementById("advance").value)||0;
+      let subtotal=products.reduce((s,p)=>s+p.total,0);
+      let gstAmount=(subtotal*GST_RATE)/100;
+      let finalTotal=subtotal+gstAmount;
 
       let bill={
         custName:document.getElementById("custName").value,
         custNumber:document.getElementById("custNumber").value,
         dept:document.getElementById("dept").value,
         payment:document.getElementById("payment").value,
-        products:products,grandTotal:total,
-        advance:advance,
-        billCode:billCode,createdAt:serverTimestamp(),
+        products:products,
+        subtotal:subtotal,
+        gstRate:GST_RATE,
+        gstAmount:gstAmount,
+        grandTotal:finalTotal,
+        advance:parseFloat(document.getElementById("advance").value)||0,
+        billCode:generateBillCode(),
+        createdAt:serverTimestamp(),
         createdBy:{uid:currentUser.uid,email:currentUser.email}
       };
 
-      // Save bill
       await addDoc(collection(db,"bills"),bill);
 
       // Deduct stock
@@ -204,8 +231,8 @@
       lastBill=bill;
       document.getElementById("msg").innerText="✅ Bill Saved & Stock Updated!";
       products=[];document.querySelector("#productTable tbody").innerHTML="";
-      updateGrandTotal();
-      loadProducts(); // refresh stock + check low stock again
+      updateTotals();
+      loadProducts();
     };
 
     // ✅ Download Invoice PDF
@@ -215,29 +242,23 @@
       const docPDF=new jsPDF();
       let today=new Date().toLocaleString();
 
-      // Header
-      docPDF.setFontSize(18); docPDF.text("Zeska Tech Billing",105,15,{align:"center"});
+      docPDF.setFontSize(18); docPDF.text(BUSINESS_NAME,105,15,{align:"center"});
       docPDF.setFontSize(12);
       docPDF.text(`Bill Code: ${lastBill.billCode}`,14,25);
       docPDF.text(`Date: ${today}`,150,25);
-
-      // Customer Info
       docPDF.text(`Customer: ${lastBill.custName} (${lastBill.custNumber})`,14,35);
       docPDF.text(`Dept: ${lastBill.dept} | Payment: ${lastBill.payment}`,14,42);
-      if(isRegularCustomer) docPDF.text("⭐ Regular Customer",150,42);
 
-      // Materials Table
       let rows=lastBill.products.map(p=>[p.product,p.size,p.qty,p.rate,p.total]);
       docPDF.autoTable({head:[["Material","Size","Qty","Rate","Total"]],body:rows,startY:50});
 
-      // Footer
       let finalY=docPDF.lastAutoTable.finalY+10;
-      docPDF.setFontSize(12);
-      docPDF.text(`Grand Total: ₹${lastBill.grandTotal}`,14,finalY);
-      docPDF.text(`Advance Paid: ₹${lastBill.advance||0}`,14,finalY+8);
-      docPDF.text(`Balance: ₹${lastBill.grandTotal-(lastBill.advance||0)}`,14,finalY+16);
-      docPDF.text("GST: Included as per rules",14,finalY+24);
-      docPDF.text("✅ Thank you for shopping with Zeska Tech!",14,finalY+36);
+      docPDF.text(`Subtotal: ₹${lastBill.subtotal}`,14,finalY);
+      docPDF.text(`GST (${lastBill.gstRate}%): ₹${lastBill.gstAmount}`,14,finalY+8);
+      docPDF.text(`Grand Total: ₹${lastBill.grandTotal}`,14,finalY+16);
+      docPDF.text(`Advance Paid: ₹${lastBill.advance||0}`,14,finalY+24);
+      docPDF.text(`Balance: ₹${lastBill.grandTotal-(lastBill.advance||0)}`,14,finalY+32);
+      docPDF.text("✅ Thank you for shopping!",14,finalY+44);
 
       docPDF.save(lastBill.billCode+".pdf");
     };
@@ -259,7 +280,11 @@
     };
 
     // ✅ Auth check
-    onAuthStateChanged(auth,(user)=>{ if(user) currentUser=user; else window.location.href="login.html"; });
+    onAuthStateChanged(auth,(user)=>{
+      if(user){ currentUser=user; loadProducts(); loadGeneralSettings(); }
+      else window.location.href="login.html";
+    });
+
     window.goHistory=function(){ window.location.href="view-bills.html"; }
   </script>
 </body>
