@@ -90,7 +90,9 @@
           menu.innerHTML += makeCard("📊", "Sales Report", "reports.html");
           menu.innerHTML += makeCard("👨‍💼", "Admin Control", "admin.html");
           menu.innerHTML += makeCard("⚙️", "Settings", "settings.html");
-          menu.innerHTML += makeCard("📝", "Attendance", "attendance.html"); // ✅ New Attendance
+
+          // ✅ NEW Attendance Button (Admin Only)
+          menu.innerHTML += makeCard("📝", "Attendance", "attendance.html");
         } else {
           // Normal staff → limited features
           menu.innerHTML += makeCard("🧾", "Generate Bill", "billing.html");
