@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeska Billing Portal</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    body { background: #f8f9fa; }
+    .portal-header {
+      background: linear-gradient(90deg, #0d6efd, #6610f2);
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .card {
+      transition: transform 0.2s;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    .icon {
+      font-size: 40px;
+      color: #0d6efd;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container mt-4">
+    <!-- Header -->
+    <div class="portal-header shadow">
+      <h2>💼 Zeska Billing Portal</h2>
+      <p id="welcomeMsg">Loading user...</p>
+    </div>
+
+    <!-- Menu -->
+    <div class="row g-4" id="menu"></div>
+
+    <!-- Logout -->
+    <div class="text-center mt-5">
+      <button class="btn btn-danger px-4" onclick="logout()">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    // ✅ Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
+      authDomain: "zeska-billing.firebaseapp.com",
+      projectId: "zeska-billing",
+      storageBucket: "zeska-billing.firebasestorage.app",
+      messagingSenderId: "285841508539",
+      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ✅ Admin UIDs
+    const adminUIDs = [
+      "hCQy8CJt4YXOxYMehNbsLQ1WjCk1",
+      "Pmibt2j3XyfLrujCbLrDbgm5l692",
+      "qmIuS4rZWjcmCKCTCHXuQL1eciH3"
+    ];
+
+    // ✅ Listen for user login
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("welcomeMsg").innerText = "Welcome, " + user.email;
+
+        let menu = document.getElementById("menu");
+        menu.innerHTML = "";
+
+        // If user is Admin → show all features
+        if (adminUIDs.includes(user.uid)) {
+          menu.innerHTML += makeCard("🧾", "Generate Bill", "billing.html");
+          menu.innerHTML += makeCard("📑", "Billing History", "view-bills.html");
+          menu.innerHTML += makeCard("📦", "Product List", "products.html");
+          menu.innerHTML += makeCard("📊", "Sales Report", "reports.html");
+          menu.innerHTML += makeCard("👨‍💼", "Admin Control", "admin.html");
+          menu.innerHTML += makeCard("⚙️", "Settings", "settings.html");
+          menu.innerHTML += makeCard("📝", "Attendance", "attendance.html"); // ✅ New Attendance
+        } else {
+          // Normal staff → limited features
+          menu.innerHTML += makeCard("🧾", "Generate Bill", "billing.html");
+          menu.innerHTML += makeCard("📦", "Product List", "products.html");
+        }
+      } else {
+        window.location.href = "login.html"; // force login
+      }
+    });
+
+    // ✅ Helper to create a card
+    function makeCard(icon, title, page) {
+      return `
+        <div class="col-md-4">
+          <div class="card text-center shadow-sm" onclick="go('${page}')">
+            <div class="card-body">
+              <div class="icon">${icon}</div>
+              <h5 class="mt-3">${title}</h5>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ✅ Navigation
+    window.go = function(page) {
+      window.location.href = page;
+    };
+
+    // ✅ Logout
+    window.logout = function() {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      });
+    };
+  </script>
+</body>
+</html>
