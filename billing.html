@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeska Billing - Generate Bill</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body { background: #f8f9fa; }
+    #grandTotal { font-weight: bold; font-size: 18px; color: #0d6efd; margin-top: 10px; }
+  </style>
+</head>
+<body class="p-4">
+
+  <div class="container bg-white p-4 shadow rounded">
+    <h3 class="text-center mb-4">🧾 Generate Bill</h3>
+
+    <!-- ⚠️ Low Stock Alert -->
+    <div id="lowStockAlert" class="alert alert-warning d-none">
+      ⚠️ Low Stock Items: <span id="lowStockList"></span>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="row mb-3">
+      <div class="col">
+        <input id="custName" class="form-control" placeholder="Customer Name">
+      </div>
+      <div class="col">
+        <input id="custNumber" class="form-control" placeholder="Customer Number" onblur="checkRegularCustomer()">
+      </div>
+    </div>
+    <p id="regularCustomer" class="text-success"></p>
+
+    <!-- Department Select -->
+    <div class="mb-3">
+      <label><b>Department</b></label>
+      <select id="dept" class="form-control">
+        <option value="">Select Department</option>
+        <option>CNC</option>
+        <option>Layer</option>
+        <option>Flex</option>
+        <option>Retail</option>
+      </select>
+    </div>
+
+    <!-- Materials Table -->
+    <h5>Materials</h5>
+    <table class="table table-bordered" id="productTable">
+      <thead class="table-light">
+        <tr>
+          <th>Material</th><th>Size (L*B)</th><th>Qty</th><th>Rate</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Add Material Row -->
+    <div class="row mb-3">
+      <div class="col"><select id="product" class="form-control"></select></div>
+      <div class="col"><input id="size" class="form-control" placeholder="Size L*B"></div>
+      <div class="col"><input id="qty" type="number" class="form-control" placeholder="Qty"></div>
+      <div class="col"><input id="rate" type="number" class="form-control" placeholder="Rate"></div>
+      <div class="col"><button class="btn btn-success w-100" onclick="addProduct()">Add</button></div>
+    </div>
+
+    <!-- Advance Payment -->
+    <div class="mb-3">
+      <label><b>Advance Payment</b></label>
+      <input id="advance" type="number" class="form-control" placeholder="Enter advance amount">
+    </div>
+
+    <!-- Payment Method -->
+    <div class="mb-3">
+      <label><b>Payment Method</b></label>
+      <select id="payment" class="form-control">
+        <option>UPI 1</option><option>UPI 2</option><option>UPI 3</option><option>Cash</option>
+      </select>
+    </div>
+
+    <!-- Grand Total -->
+    <div id="grandTotal">💰 Grand Total: ₹0</div>
+
+    <!-- Buttons -->
+    <div class="d-flex justify-content-between mt-3">
+      <button class="btn btn-secondary" onclick="goHistory()">📑 Billing History</button>
+      <button class="btn btn-primary" onclick="saveBill()">💾 Save Bill</button>
+      <button class="btn btn-success" onclick="downloadBill()">⬇ Download Invoice</button>
+    </div>
+
+    <p id="msg" class="mt-3 text-center"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
+      authDomain: "zeska-billing.firebaseapp.com",
+      projectId: "zeska-billing",
+      storageBucket: "zeska-billing.firebasestorage.app",
+      messagingSenderId: "285841508539",
+      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let products=[], currentUser=null, lastBill=null, isRegularCustomer=false;
+
+    // ✅ Load products with quantity + check low stock
+    async function loadProducts(){
+      const prodSelect=document.getElementById("product");
+      const lowStockDiv=document.getElementById("lowStockAlert");
+      const lowStockList=document.getElementById("lowStockList");
+
+      prodSelect.innerHTML="";
+      lowStockList.innerHTML="";
+      let lowItems=[];
+
+      const prodSnap=await getDocs(collection(db,"products"));
+      prodSnap.forEach(p=>{
+        let d=p.data();
+        let qty=d.quantity||0;
+        prodSelect.innerHTML+=`<option value="${p.id}" data-qty="${qty}">${p.id} (${qty} left)</option>`;
+        if(qty<10){ lowItems.push(`${p.id} (${qty})`); }
+      });
+
+      // show/hide low stock alert
+      if(lowItems.length>0){
+        lowStockDiv.classList.remove("d-none");
+        lowStockList.innerText=lowItems.join(", ");
+      } else {
+        lowStockDiv.classList.add("d-none");
+      }
+    }
+    loadProducts();
+
+    // ✅ Add product to bill
+    window.addProduct=function(){
+      let sel=document.getElementById("product");
+      let p=sel.value;
+      let stock=parseInt(sel.options[sel.selectedIndex].getAttribute("data-qty"))||0;
+      let s=document.getElementById("size").value;
+      let q=parseInt(document.getElementById("qty").value);
+      let r=parseFloat(document.getElementById("rate").value);
+
+      if(!q||!r){alert("Enter valid Qty & Rate");return;}
+      if(q>stock){alert("Not enough stock! Available: "+stock);return;}
+
+      let t=q*r;
+      products.push({product:p,size:s,qty:q,rate:r,total:t});
+      document.querySelector("#productTable tbody").innerHTML+=`<tr><td>${p}</td><td>${s}</td><td>${q}</td><td>${r}</td><td>${t}</td></tr>`;
+      updateGrandTotal();
+
+      document.getElementById("size").value="";
+      document.getElementById("qty").value="";
+      document.getElementById("rate").value="";
+    };
+
+    function updateGrandTotal(){
+      let total=products.reduce((sum,p)=>sum+p.total,0);
+      document.getElementById("grandTotal").innerText="💰 Grand Total: ₹"+total;
+    }
+
+    function generateBillCode(){ return "BILL-"+Math.random().toString(36).substring(2,8).toUpperCase(); }
+
+    // ✅ Save Bill + Deduct Stock
+    window.saveBill=async function(){
+      if(!currentUser){alert("Not logged in");return;}
+      if(products.length===0){alert("Add materials first");return;}
+
+      let billCode=generateBillCode();
+      let total=products.reduce((s,p)=>s+p.total,0);
+      let advance=parseFloat(document.getElementById("advance").value)||0;
+
+      let bill={
+        custName:document.getElementById("custName").value,
+        custNumber:document.getElementById("custNumber").value,
+        dept:document.getElementById("dept").value,
+        payment:document.getElementById("payment").value,
+        products:products,grandTotal:total,
+        advance:advance,
+        billCode:billCode,createdAt:serverTimestamp(),
+        createdBy:{uid:currentUser.uid,email:currentUser.email}
+      };
+
+      // Save bill
+      await addDoc(collection(db,"bills"),bill);
+
+      // Deduct stock
+      for(let item of products){
+        let ref=doc(db,"products",item.product);
+        let snap=await getDoc(ref);
+        if(snap.exists()){
+          let curr=snap.data().quantity||0;
+          await updateDoc(ref,{quantity:curr-item.qty});
+        }
+      }
+
+      lastBill=bill;
+      document.getElementById("msg").innerText="✅ Bill Saved & Stock Updated!";
+      products=[];document.querySelector("#productTable tbody").innerHTML="";
+      updateGrandTotal();
+      loadProducts(); // refresh stock + check low stock again
+    };
+
+    // ✅ Download Invoice PDF
+    window.downloadBill=function(){
+      if(!lastBill){alert("Save a bill first!");return;}
+      const { jsPDF }=window.jspdf;
+      const docPDF=new jsPDF();
+      let today=new Date().toLocaleString();
+
+      // Header
+      docPDF.setFontSize(18); docPDF.text("Zeska Tech Billing",105,15,{align:"center"});
+      docPDF.setFontSize(12);
+      docPDF.text(`Bill Code: ${lastBill.billCode}`,14,25);
+      docPDF.text(`Date: ${today}`,150,25);
+
+      // Customer Info
+      docPDF.text(`Customer: ${lastBill.custName} (${lastBill.custNumber})`,14,35);
+      docPDF.text(`Dept: ${lastBill.dept} | Payment: ${lastBill.payment}`,14,42);
+      if(isRegularCustomer) docPDF.text("⭐ Regular Customer",150,42);
+
+      // Materials Table
+      let rows=lastBill.products.map(p=>[p.product,p.size,p.qty,p.rate,p.total]);
+      docPDF.autoTable({head:[["Material","Size","Qty","Rate","Total"]],body:rows,startY:50});
+
+      // Footer
+      let finalY=docPDF.lastAutoTable.finalY+10;
+      docPDF.setFontSize(12);
+      docPDF.text(`Grand Total: ₹${lastBill.grandTotal}`,14,finalY);
+      docPDF.text(`Advance Paid: ₹${lastBill.advance||0}`,14,finalY+8);
+      docPDF.text(`Balance: ₹${lastBill.grandTotal-(lastBill.advance||0)}`,14,finalY+16);
+      docPDF.text("GST: Included as per rules",14,finalY+24);
+      docPDF.text("✅ Thank you for shopping with Zeska Tech!",14,finalY+36);
+
+      docPDF.save(lastBill.billCode+".pdf");
+    };
+
+    // ✅ Check Regular Customer
+    window.checkRegularCustomer=async function(){
+      let num=document.getElementById("custNumber").value;
+      if(!num)return;
+      let q=query(collection(db,"bills"),where("custNumber","==",num));
+      let snap=await getDocs(q);
+      if(!snap.empty){
+        let data=snap.docs[0].data();
+        document.getElementById("regularCustomer").innerText=`⭐ Regular Customer! Last Bill Code: ${data.billCode}`;
+        isRegularCustomer=true;
+      } else {
+        document.getElementById("regularCustomer").innerText="";
+        isRegularCustomer=false;
+      }
+    };
+
+    // ✅ Auth check
+    onAuthStateChanged(auth,(user)=>{ if(user) currentUser=user; else window.location.href="login.html"; });
+    window.goHistory=function(){ window.location.href="view-bills.html"; }
+  </script>
+</body>
+</html>
