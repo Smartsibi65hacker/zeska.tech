@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zeska Billing - Login</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .login-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      width: 350px;
+      text-align: center;
+      color: white;
+    }
+    .login-card h3 {
+      margin-bottom: 25px;
+      font-weight: bold;
+    }
+    .form-control {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 8px;
+      color: white;
+    }
+    .form-control::placeholder {
+      color: #ddd;
+    }
+    .form-control:focus {
+      box-shadow: 0 0 10px #0d6efd;
+    }
+    .btn-login {
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      border: none;
+      font-weight: bold;
+      border-radius: 8px;
+      padding: 10px;
+      transition: transform 0.2s;
+    }
+    .btn-login:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #6610f2, #0d6efd);
+    }
+    .input-group-text {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+    }
+    #msg {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <h3>💼 Zeska Billing</h3>
+
+    <!-- Email -->
+    <div class="input-group mb-3">
+      <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+      <input id="email" type="email" class="form-control" placeholder="Email">
+    </div>
+
+    <!-- Password -->
+    <div class="input-group mb-3">
+      <span class="input-group-text"><i class="bi bi-lock"></i></span>
+      <input id="password" type="password" class="form-control" placeholder="Password">
+    </div>
+
+    <!-- Login Button -->
+    <button class="btn btn-login w-100" onclick="login()">Login</button>
+
+    <p id="msg"></p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+    // ✅ Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
+      authDomain: "zeska-billing.firebaseapp.com",
+      projectId: "zeska-billing",
+      storageBucket: "zeska-billing.firebasestorage.app",
+      messagingSenderId: "285841508539",
+      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // ✅ Login Function
+    window.login = function() {
+      const email = document.getElementById("email").value;
+      const pass = document.getElementById("password").value;
+
+      signInWithEmailAndPassword(auth, email, pass)
+        .then((userCredential) => {
+          document.getElementById("msg").innerText = "✅ Login Success!";
+          window.location.href = "portal.html"; // redirect to portal
+        })
+        .catch((error) => {
+          document.getElementById("msg").innerText = "❌ " + error.message;
+        });
+    }
+  </script>
+</body>
+</html>
