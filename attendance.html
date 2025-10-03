@@ -13,6 +13,15 @@
       border-radius: 10px;
       margin-bottom: 20px;
       text-align: center;
+      position: relative;
+    }
+    .staff-buttons {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+    }
+    .staff-buttons a {
+      margin-left: 10px;
     }
     .table-container {
       background: white;
@@ -28,6 +37,13 @@
   <div class="header">
     <h3>📝 Attendance</h3>
     <p>Mark staff attendance for today</p>
+    <!-- ✅ Staff Manage Buttons -->
+    <div class="staff-buttons">
+      <a href="https://docs.google.com/forms/d/e/1FAIpQLSfUCDNIj4Zfm5MclhqY-IzCzragI-UWfLQgU80qqVc-AvzDWQ/viewform?usp=header" 
+         target="_blank" class="btn btn-sm btn-light">➕ Add Staff</a>
+      <a href="https://docs.google.com/forms/d/1NjJkK-E2B2mPs3HrGbTiT4DnOhT6DzbfW5Y6VO2WNGg/edit?pli=1#responses" 
+         target="_blank" class="btn btn-sm btn-warning">👀 View/Edit Staff</a>
+    </div>
   </div>
 
   <div class="table-container">
@@ -48,7 +64,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
   // ✅ Firebase Config
   const firebaseConfig = {
