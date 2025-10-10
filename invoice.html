@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Order Received — Ultra Animated ⚡</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-1:#0a0a1a; /* deep space */
+      --bg-2:#111133; /* nebula */
+      --neon-1:#7c3aed; /* purple */
+      --neon-2:#22d3ee; /* cyan */
+      --neon-3:#f59e0b; /* amber */
+      --text:#EAF2FF;
+      --glass:rgba(255,255,255,0.08);
+      --glass-border:rgba(255,255,255,0.25);
+      --success:#22c55e;
+      --danger:#ef4444;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      color:var(--text);
+      overflow:hidden;
+      background: radial-gradient(1200px 800px at 10% 20%,#1b1b3a 0%, transparent 60%),
+                 radial-gradient(900px 700px at 90% 10%, #0b2a35 0%, transparent 60%),
+                 linear-gradient(120deg,var(--bg-1),var(--bg-2));
+      animation:bgShift 16s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgShift{ 0%{filter:hue-rotate(0deg)} 100%{filter:hue-rotate(40deg)} }
+
+    /* Floating Hubble blobs */
+    .blob{position:absolute; filter:blur(32px); opacity:0.5; mix-blend-mode:screen; border-radius:50%;}
+    .blob.b1{ width:620px; height:620px; background:radial-gradient(circle at 30% 30%, var(--neon-2), transparent 60%); top:-120px; left:-140px; animation:float1 18s ease-in-out infinite;}
+    .blob.b2{ width:540px; height:540px; background:radial-gradient(circle at 70% 60%, var(--neon-1), transparent 60%); bottom:-160px; right:-100px; animation:float2 22s ease-in-out infinite;}
+    .blob.b3{ width:440px; height:440px; background:radial-gradient(circle at 40% 70%, var(--neon-3), transparent 60%); top:45%; left:60%; animation:float3 26s ease-in-out infinite;}
+    @keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,30px) scale(1.05)}}
+    @keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-30px,20px) scale(1.08)}}
+    @keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-40px) scale(1.06)}}
+
+    /* Starfield canvas sits behind everything */
+    canvas#stars{position:fixed; inset:0; z-index:0;}
+
+    .wrap{position:relative; z-index:2; height:100%; display:grid; place-items:center; padding:24px}
+
+    .card{
+      width:min(760px,92vw);
+      background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border:1px solid var(--glass-border);
+      border-radius:24px; padding:28px 28px 20px; backdrop-filter: blur(14px) saturate(120%);
+      box-shadow: 0 20px 80px rgba(0,0,0,0.45), inset 0 0 60px rgba(124,58,237,0.12);
+      transform-style:preserve-3d; perspective:1000px; animation:pop 0.9s cubic-bezier(.2,1,.2,1) 0.2s both;
+    }
+    @keyframes pop{ from{ transform: translateY(30px) scale(.96); opacity:0 } to{ transform: translateY(0) scale(1); opacity:1 } }
+
+    .badge{
+      display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px;
+      background:linear-gradient(90deg, rgba(34,197,94,.15), rgba(34,211,238,.12));
+      border:1px solid rgba(255,255,255,.25); box-shadow: inset 0 0 22px rgba(34,197,94,.2);
+      font-weight:600; letter-spacing:.3px;
+    }
+    .pulse{ position:relative }
+    .pulse::after{ content:""; position:absolute; inset:-8px; border-radius:inherit; 
+      background:radial-gradient(closest-side, rgba(34,197,94,.3), transparent);
+      filter:blur(8px); animation:pulse 1.8s ease-out infinite;}
+    @keyframes pulse{0%{opacity:.9; transform:scale(.9)} 70%{opacity:0; transform:scale(1.3)} 100%{opacity:0; transform:scale(1.4)}}
+
+    h1{font-size:clamp(28px,4vw,46px); margin:18px 0 6px; line-height:1.15; text-shadow:0 6px 24px rgba(124,58,237,.38)}
+    p.sub{opacity:.9; margin:6px 0 18px}
+
+    .split{ display:grid; grid-template-columns: 1fr; gap:18px }
+    @media(min-width:720px){ .split{grid-template-columns: 1.2fr .8fr;} }
+
+    .glass{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.2); border-radius:18px; padding:14px 16px; position:relative;
+    }
+
+    .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+    .kv{ flex:1 1 180px; }
+    .k{opacity:.7; font-size:12px; text-transform:uppercase; letter-spacing:.6px}
+    .v{ font-weight:700; margin-top:2px; }
+
+    .countdown{ display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+    .timebox{ min-width:88px; text-align:center; padding:10px; border-radius:14px; border:1px solid rgba(255,255,255,.18);}
+    .timebox .num{ font-size:28px; font-weight:800 }
+    .timebox .lab{ opacity:.7; font-size:12px; text-transform:uppercase; letter-spacing:.6px }
+
+    .cta{ display:flex; gap:12px; flex-wrap:wrap; margin-top:14px }
+    .btn{
+      --glow: var(--neon-2);
+      padding:12px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.2); font-weight:700; cursor:pointer; 
+      background:
+        radial-gradient(120px 40px at 10% 10%, rgba(255,255,255,.22), transparent 60%),
+        linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,.06));
+      box-shadow:0 0 0 0 rgba(0,0,0,0);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .btn:hover{ transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,.35), 0 0 24px var(--glow); }
+    .btn.primary{ --glow: var(--neon-1); }
+
+    /* neon ring check */
+    .checkwrap{ position:relative; width:110px; height:110px; margin:auto; }
+    .ring{ position:absolute; inset:0; border-radius:50%; background:conic-gradient(from 0deg, var(--neon-2), var(--neon-1), var(--neon-3), var(--neon-2)); filter:blur(6px); animation:spin 2.6s linear infinite; opacity:.9 }
+    @keyframes spin{ to{ transform:rotate(360deg) } }
+    .inner{ position:absolute; inset:8px; border-radius:50%; background:rgba(10,10,20,.7); display:grid; place-items:center; border:1px solid rgba(255,255,255,.2);}
+    .check{ width:56px; height:56px; }
+    .check path{ stroke:url(#grad); stroke-width:10; stroke-linecap:round; stroke-linejoin:round; fill:none; stroke-dasharray:160; stroke-dashoffset:160; animation:dash 1.2s ease forwards 0.4s }
+    @keyframes dash{ to{ stroke-dashoffset:0 } }
+
+    /* floating shards */
+    .shard{ position:fixed; width:2px; height:14px; background:linear-gradient(to bottom, #fff, transparent); opacity:.5; filter:drop-shadow(0 0 6px rgba(255,255,255,.6)); z-index:1;}
+
+    /* parallax tilt */
+    .parallax{ transform: rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)); transition: transform .08s ease-out }
+
+    /* toast */
+    .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:rgba(15,20,35,.8); border:1px solid rgba(255,255,255,.2); color:var(--text); padding:12px 16px; border-radius:12px; z-index:5; backdrop-filter: blur(8px); display:none }
+    .toast.show{ display:block; animation:toastIn .4s ease both }
+    @keyframes toastIn{ from{ opacity:0; transform:translate(-50%, 8px) } to { opacity:1; transform:translate(-50%,0) } }
+  </style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="wrap">
+    <div class="card parallax" id="card">
+      <span class="badge pulse">✅ Order Received • <span id="orderId">#000000</span></span>
+      <div class="checkwrap" aria-hidden="true">
+        <div class="ring"></div>
+        <div class="inner">
+          <svg class="check" viewBox="0 0 100 100">
+            <defs>
+              <linearGradient id="grad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="var(--neon-2)"/>
+                <stop offset="100%" stop-color="var(--neon-1)"/>
+              </linearGradient>
+            </defs>
+            <path d="M20 52 L42 72 L80 28" />
+          </svg>
+        </div>
+      </div>
+
+      <h1>Thank you! Your order is locked in 🔒</h1>
+      <p class="sub">We got your request and we’re on it. You’ll receive your project <b>within 48 hours</b>. Meanwhile, keep this tab open to watch the live countdown & cosmic vibes ✨</p>
+
+      <div class="split">
+        <div class="glass">
+          <div class="row">
+            <div class="kv"><div class="k">Status</div><div class="v" id="statusTxt">Processing</div></div>
+            <div class="kv"><div class="k">Placed</div><div class="v" id="placedAt">—</div></div>
+            <div class="kv"><div class="k">ETA</div><div class="v" id="etaAt">—</div></div>
+          </div>
+          <div class="countdown" id="countdown">
+            <div class="timebox"><div class="num" id="d">00</div><div class="lab">Days</div></div>
+            <div class="timebox"><div class="num" id="h">00</div><div class="lab">Hours</div></div>
+            <div class="timebox"><div class="num" id="m">00</div><div class="lab">Minutes</div></div>
+            <div class="timebox"><div class="num" id="s">00</div><div class="lab">Seconds</div></div>
+          </div>
+          <div class="cta">
+            <button class="btn primary" id="trackBtn">Track Order</button>
+            <button class="btn" id="receiptBtn">Download Receipt</button>
+            <button class="btn" id="shareBtn">Share</button>
+          </div>
+        </div>
+        <div class="glass">
+          <canvas id="confetti" width="500" height="260" style="width:100%; height:220px; display:block; border-radius:14px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Link copied! Drop it anywhere 🔗</div>
+
+  <script>
+    // ====== Dynamic Order ID ======
+    const orderId = '#'+Math.random().toString(16).slice(2,8).toUpperCase();
+    document.getElementById('orderId').textContent = orderId;
+
+    // ====== Timestamps & 48h ETA ======
+    const placed = new Date();
+    const eta = new Date(placed.getTime() + 48*60*60*1000);
+    const fmt = d => d.toLocaleString();
+    placed && (document.getElementById('placedAt').textContent = fmt(placed));
+    eta && (document.getElementById('etaAt').textContent = fmt(eta));
+
+    // ====== Countdown ======
+    const dEl = document.getElementById('d');
+    const hEl = document.getElementById('h');
+    const mEl = document.getElementById('m');
+    const sEl = document.getElementById('s');
+    const statusTxt = document.getElementById('statusTxt');
+
+    function updateCountdown(){
+      const now = new Date();
+      let diff = eta - now;
+      if(diff <= 0){ diff = 0; statusTxt.textContent = 'Delivered'; burstConfetti(220); }
+      const sec = Math.floor(diff/1000)%60;
+      const min = Math.floor(diff/60000)%60;
+      const hr  = Math.floor(diff/3600000)%24;
+      const day = Math.floor(diff/86400000);
+      dEl.textContent = String(day).padStart(2,'0');
+      hEl.textContent = String(hr).padStart(2,'0');
+      mEl.textContent = String(min).padStart(2,'0');
+      sEl.textContent = String(sec).padStart(2,'0');
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // ====== Starfield Background ======
+    const starCanvas = document.getElementById('stars');
+    const starCtx = starCanvas.getContext('2d');
+    let stars = [];
+    function resizeStars(){ starCanvas.width = innerWidth; starCanvas.height = innerHeight; }
+    addEventListener('resize', resizeStars); resizeStars();
+    for(let i=0;i<300;i++){
+      stars.push({x: Math.random()*starCanvas.width, y: Math.random()*starCanvas.height, z: Math.random()*2+0.5, tw: Math.random()*0.8+0.2});
+    }
+    function drawStars(){
+      starCtx.clearRect(0,0,starCanvas.width,starCanvas.height);
+      for(const s of stars){
+        s.x -= s.z; if(s.x < 0) s.x = starCanvas.width; // drift
+        const size = s.z*1.2;
+        starCtx.globalAlpha = s.tw; s.tw += (Math.random()-.5)*0.03; s.tw = Math.max(.1, Math.min(1, s.tw));
+        starCtx.fillStyle = '#fff';
+        starCtx.fillRect(s.x, s.y, size, size);
+      }
+      requestAnimationFrame(drawStars);
+    }
+    drawStars();
+
+    // ====== Falling Light Shards ======
+    const SHARDS = 48;
+    for(let i=0;i<SHARDS;i++){
+      const el = document.createElement('div'); el.className='shard'; document.body.appendChild(el);
+      resetShard(el);
+    }
+    function resetShard(el){
+      const x = Math.random()*100; const d = Math.random()*6+4; const h = Math.random()*14+8;
+      el.style.left = x+'vw'; el.style.top = '-20px'; el.style.height=h+'px';
+      el.animate([ { transform:'translateY(-20px)', opacity:.2 }, { transform:'translateY(110vh)', opacity:.8 } ], { duration: d*1000, iterations: Infinity, delay: Math.random()*3000, easing:'cubic-bezier(.2,.6,.2,1)'});
+    }
+
+    // ====== Parallax tilt on move ======
+    const card = document.getElementById('card');
+    addEventListener('mousemove', (e)=>{
+      const r = card.getBoundingClientRect();
+      const cx = r.left + r.width/2; const cy = r.top + r.height/2;
+      const dx = (e.clientX - cx)/r.width; const dy = (e.clientY - cy)/r.height;
+      card.style.setProperty('--rx', (dy*-8)+'deg');
+      card.style.setProperty('--ry', (dx*10)+'deg');
+    });
+
+    // ====== Confetti Canvas (dynamic) ======
+    const c = document.getElementById('confetti');
+    const ctx = c.getContext('2d');
+    function fitConfetti(){ const r = c.parentElement.getBoundingClientRect(); c.width = r.width*2; c.height = 240*2; }
+    addEventListener('resize', fitConfetti); fitConfetti();
+    const pieces = Array.from({length: 220}, () => ({
+      x: Math.random()*c.width, y: Math.random()*c.height, r: Math.random()*7+3, s: Math.random()*2+1, a: Math.random()*Math.PI*2, w: Math.random()*0.2+0.02
+    }));
+    function draw(){
+      ctx.clearRect(0,0,c.width,c.height);
+      for(const p of pieces){
+        p.y += p.s; p.x += Math.sin(p.a)*0.8; p.a += p.w;
+        if(p.y>c.height+20){ p.y=-20; p.x=Math.random()*c.width }
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.a);
+        const g = ctx.createLinearGradient(-p.r, -p.r, p.r, p.r);
+        g.addColorStop(0,'rgba(34,211,238,.95)'); g.addColorStop(1,'rgba(124,58,237,.95)');
+        ctx.fillStyle = g; ctx.fillRect(-p.r,-p.r, p.r*2, p.r*2);
+        ctx.restore();
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+    function burstConfetti(n=120){
+      for(let i=0;i<n;i++){
+        pieces.push({x:c.width/2, y:c.height/3, r:Math.random()*8+3, s:Math.random()*3+2, a:Math.random()*Math.PI*2, w:Math.random()*0.3+0.05});
+      }
+      setTimeout(()=> pieces.splice(220), 2000);
+    }
+
+    // ====== Buttons ======
+    document.getElementById('trackBtn').addEventListener('click', ()=>{
+      burstConfetti(180);
+      showToast('Tracking started for '+orderId);
+    });
+    document.getElementById('receiptBtn').addEventListener('click', ()=>{
+      const blob = new Blob([
+        `Order Receipt\n\nOrder: ${orderId}\nStatus: Processing\nPlaced: ${fmt(placed)}\nETA: ${fmt(eta)}\n\nThank you for your order!`], {type:'text/plain'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download=`Receipt_${orderId}.txt`; a.click(); URL.revokeObjectURL(url);
+      showToast('Receipt downloaded');
+    });
+    document.getElementById('shareBtn').addEventListener('click', async ()=>{
+      const data = { title:'Order '+orderId, text:`My order ${orderId} is confirmed. ETA within 48 hours ✨`, url: location.href };
+      if(navigator.share){ await navigator.share(data); } else { await navigator.clipboard.writeText(data.text+"\n"+data.url); showToast('Link copied! Drop it anywhere 🔗'); }
+    });
+
+    function showToast(msg){ const t = document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2200); }
+  </script>
+</body>
+</html>
