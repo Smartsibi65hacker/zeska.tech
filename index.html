@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ZESKA — Stones</title>
+  <title>ZESKA — Dynamic Stones</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
@@ -14,30 +14,64 @@
       --green:#16a34a;
       --purple:#6d28d9;
       --gold:#d4af37;
+      --blue:#2563eb;
       --glass: rgba(255,255,255,0.04);
       --shadow: 0 18px 60px rgba(0,0,0,.6);
     }
+
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:
-      radial-gradient(1200px 800px at 80% -10%, rgba(168,85,247,.06), transparent),
-      radial-gradient(900px 700px at -10% 110%, rgba(110,231,255,.04), transparent),
-      linear-gradient(180deg,var(--bg-1),var(--bg-2)); color:#fff; overflow:hidden; }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:
+        radial-gradient(1200px 800px at 80% -10%, rgba(168,85,247,.06), transparent),
+        radial-gradient(900px 700px at -10% 110%, rgba(110,231,255,.04), transparent),
+        linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      color:#fff;
+      overflow:hidden;
+    }
 
-    /* Download button top-right (global) */
-    .downloadBtn{ position:fixed; top:16px; right:16px; z-index:9999; background:var(--accent); color:#fff; padding:10px 16px; font-weight:700; border-radius:12px; text-decoration:none; box-shadow:var(--shadow); }
+    .downloadBtn{
+      position:fixed;
+      top:16px;
+      right:16px;
+      z-index:9999;
+      background:var(--accent);
+      color:#fff;
+      padding:10px 16px;
+      font-weight:700;
+      border-radius:12px;
+      text-decoration:none;
+      box-shadow:var(--shadow);
+    }
 
-    /* Center main button */
-    .stage-center{height:100vh; display:flex; align-items:center; justify-content:center; position:relative;}
+    .stage-center{
+      height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+    }
+
     #mainBtn{
       background:linear-gradient(180deg,#070708,#0b0b0f);
-      color:#fff; border:none; padding:22px 46px; font-size:clamp(28px,6vw,56px); font-weight:900; letter-spacing:.18em; text-transform:uppercase;
-      border-radius:56px; cursor:pointer; box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(168,85,247,.06);
+      color:#fff;
+      border:none;
+      padding:22px 46px;
+      font-size:clamp(28px,6vw,56px);
+      font-weight:900;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      border-radius:56px;
+      cursor:pointer;
+      box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(168,85,247,.06);
       transition: transform .8s cubic-bezier(.2,.9,.2,1), opacity .6s;
       z-index:40;
     }
+
     #mainBtn:active{ transform:scale(.98) }
 
-    /* Stones row container (hidden) */
     .stones{
       position: absolute;
       bottom: 30vh;
@@ -51,46 +85,57 @@
       transition: opacity .6s ease, transform .6s ease;
       z-index:30;
     }
+
     .stones.visible{ pointer-events:auto; opacity:1; transform:scale(1); }
 
     .stone{
-      width:128px; height:128px; border-radius:18px; display:flex; align-items:center; justify-content:center;
-      font-weight:800; text-transform:uppercase; cursor:pointer; color:#fff; user-select:none;
+      width:128px; height:128px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:800;
+      text-transform:uppercase;
+      cursor:pointer;
+      color:#fff;
+      user-select:none;
       box-shadow: 0 30px 80px rgba(0,0,0,.6);
       transition: transform .8s cubic-bezier(.2,.9,.2,1), box-shadow .25s;
       transform: translateY(80vh) scale(.8);
       position:relative;
     }
+
     .stone .label{ z-index:2; pointer-events:none }
+
     .stone::after{
       content:""; position:absolute; inset:0; border-radius:inherit;
       background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.04), transparent 35%);
       mix-blend-mode: screen; opacity:.9;
     }
+
     .stone:hover{ transform: translateY(0) scale(1.06); box-shadow: 0 40px 120px rgba(0,0,0,.75); }
 
     .stone.red{ background: linear-gradient(180deg,var(--red),#9b1c1c); box-shadow: 0 0 50px rgba(220,38,38,.25); }
     .stone.green{ background: linear-gradient(180deg,var(--green),#0f7a3a); box-shadow: 0 0 50px rgba(22,163,74,.25); }
     .stone.purple{ background: linear-gradient(180deg,var(--purple),#4c1d95); box-shadow: 0 0 50px rgba(109,40,217,.25); }
     .stone.gold{ background: linear-gradient(180deg,var(--gold),#b6871f); box-shadow: 0 0 50px rgba(212,175,55,.22); }
+    .stone.blue{ background: linear-gradient(180deg,var(--blue),#1e3a8a); box-shadow: 0 0 50px rgba(37,99,235,.25); }
 
-    /* subtle floating animation */
     @keyframes floaty { 0%{ transform: translateY(-6px)} 50%{ transform: translateY(6px)} 100%{ transform: translateY(-6px)} }
     .stone.float{ animation: floaty 4s ease-in-out infinite; }
 
-    /* rocket animation (green) */
     .rocket {
       transform-origin: 50% 50%;
       animation: rocketFly .9s forwards cubic-bezier(.2,.8,.2,1);
       box-shadow: 0 80px 200px rgba(22,163,74,.35);
     }
+
     @keyframes rocketFly {
       0%{ transform: translateY(0) scale(1) rotate(0) }
       30%{ transform: translateY(-40vh) scale(1.35) rotate(-8deg) }
       100%{ transform: translateY(-180vh) scale(1.6) rotate(-18deg); opacity:0 }
     }
 
-    /* small responsive tweaks */
     @media (max-width:700px){
       .stone{ width:96px; height:96px; font-size:12px }
       #mainBtn { padding:18px 30px; font-size: clamp(24px,9vw,44px) }
@@ -98,76 +143,70 @@
   </style>
 </head>
 <body>
-  <!-- download (global) -->
+
   <a class="downloadBtn" href="https://rzp.io/rzp/1C3HdrOS" target="_blank" rel="noopener">Download</a>
 
   <div class="stage-center">
     <button id="mainBtn" aria-label="Enter ZESKA">ZESKA</button>
-
-    <div class="stones" id="stones" aria-hidden="true" role="group" aria-label="Sections">
-      <div class="stone red float" id="stone-red" role="button" tabindex="0"><span class="label">Hack</span></div>
-      <div class="stone green float" id="stone-green" role="button" tabindex="0"><span class="label">Stock</span></div>
-      <div class="stone purple float" id="stone-purple" role="button" tabindex="0"><span class="label">Tech</span></div>
-      <div class="stone gold float" id="stone-gold" role="button" tabindex="0"><span class="label">login</span></div>
-    </div>
+    <div class="stones" id="stones" aria-hidden="true" role="group" aria-label="Sections"></div>
   </div>
 
   <script>
-    // touch-safe starter
-    const mainBtn = document.getElementById('mainBtn');
-    const stones = document.getElementById('stones');
-    const stoneRed = document.getElementById('stone-red');
-    const stoneGreen = document.getElementById('stone-green');
-    const stonePurple = document.getElementById('stone-purple');
-    const stoneGold = document.getElementById('stone-gold');
+    const stonesData = [
+      { name: "Hack", color: "red", link: "hack.html" },
+      { name: "Stock", color: "green", link: "stock.html", rocket: true },
+      { name: "Tech", color: "purple", link: "tech.html" },
+      { name: "Login", color: "gold", link: "login.html" },
+      { name: "AAC", color: "blue", link: "aac.html" } // 👈 NEW AAC STONE
+    ];
 
+    const stonesContainer = document.getElementById('stones');
+    const mainBtn = document.getElementById('mainBtn');
+
+    // Dynamically create stones
+    stonesData.forEach((stone, i) => {
+      const div = document.createElement('div');
+      div.className = `stone ${stone.color} float`;
+      div.innerHTML = `<span class="label">${stone.name}</span>`;
+      div.tabIndex = 0;
+
+      // Add click logic
+      div.addEventListener('click', () => {
+        if(stone.rocket){
+          div.classList.add('rocket');
+          setTimeout(()=> window.location.href = stone.link, 850);
+        } else {
+          window.location.href = stone.link;
+        }
+      });
+      div.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter') window.location.href = stone.link;
+      });
+
+      stonesContainer.appendChild(div);
+    });
+
+    // Animation logic
     function startSequence(e){
       if(e && e.cancelable) e.preventDefault();
-      // remove to avoid double-run
       mainBtn.removeEventListener('click', startSequence);
-      mainBtn.removeEventListener('touchstart', startSequence);
 
-      // fly main button up
       mainBtn.style.transform = 'translateY(-150vh) scale(.25)';
       mainBtn.style.opacity = '0';
 
-      // show stones after a short delay
       setTimeout(()=>{
-        stones.classList.add('visible');
-        stones.setAttribute('aria-hidden','false');
+        stonesContainer.classList.add('visible');
+        stonesContainer.setAttribute('aria-hidden','false');
 
-        // stagger drop-in (will override initial translateY)
         const elems = Array.from(document.querySelectorAll('.stone'));
         elems.forEach((el, i)=>{
-          // small delay stagger
-          setTimeout(()=> {
-            el.style.transform = 'translateY(0) scale(1)';
-          }, 150 + i * 180);
+          setTimeout(()=> { el.style.transform = 'translateY(0) scale(1)'; }, 150 + i * 180);
         });
       }, 700);
     }
 
     mainBtn.addEventListener('click', startSequence);
     mainBtn.addEventListener('touchstart', startSequence, {passive:false});
-    mainBtn.addEventListener('keydown', (e)=>{ if(e.key==='Enter') startSequence(e); });
-
-    // Stone actions
-    stoneRed.addEventListener('click', ()=> { window.location.href = 'hack.html'; });
-    stoneRed.addEventListener('keydown', (e)=>{ if(e.key==='Enter') window.location.href='hack.html' });
-
-    // green: rocket effect then open stock page
-    stoneGreen.addEventListener('click', ()=> {
-      stoneGreen.classList.add('rocket');
-      // small delay to show rocket animation
-      setTimeout(()=> window.location.href = 'stock.html', 850);
-    });
-    stoneGreen.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ stoneGreen.classList.add('rocket'); setTimeout(()=> location.href='stock.html', 850); }});
-
-    // placeholders for purple & gold (change later)
-    stonePurple.addEventListener('click', ()=> { window.location.href = 'tech.html'; });
-    stoneGold.addEventListener('click', ()=> { window.location.href = 'login.html'; });
-    stonePurple.addEventListener('keydown', (e)=>{ if(e.key==='Enter') location.href='tech.html' });
-    stoneGold.addEventListener('keydown', (e)=>{ if(e.key==='Enter') location.href='login.html' });
   </script>
 </body>
 </html>
