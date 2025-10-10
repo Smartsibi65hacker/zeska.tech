@@ -94,7 +94,6 @@
       border-color: var(--glow);
     }
 
-    /* Floating soft neon glow animation */
     @keyframes floaty {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-4px); }
@@ -110,7 +109,6 @@
       animation-delay: calc(var(--i) * 0.05s);
     }
 
-    /* Scrollbar style */
     ::-webkit-scrollbar {
       width: 8px;
     }
@@ -127,6 +125,7 @@
 
   <script>
     const container = document.getElementById("btnContainer");
+    const paymentLink = "https://pages.razorpay.com/pl_RReYKatuRI8J8E/view";
 
     // Create 60 glowing buttons dynamically
     for (let i = 1; i <= 60; i++) {
@@ -136,9 +135,9 @@
       btn.style.setProperty("--i", i);
       btn.textContent = rollNum;
 
-      // Optional: add click behavior
+      // Open Razorpay link on click
       btn.addEventListener("click", () => {
-        alert(`You clicked ${rollNum}`);
+        window.open(paymentLink, "_blank");
       });
 
       container.appendChild(btn);
