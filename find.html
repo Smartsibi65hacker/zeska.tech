@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZESKA FINEME — Device Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg1: #06050a;
+      --bg2: #0e0c18;
+      --accent: #a855f7;
+      --text: #fff;
+      --table-bg: rgba(255, 255, 255, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: radial-gradient(1000px 800px at 80% -10%, rgba(168,85,247,.1), transparent),
+                  radial-gradient(1000px 800px at -10% 110%, rgba(110,231,255,.05), transparent),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 20px rgba(168,85,247,.5);
+      margin-bottom: 30px;
+    }
+
+    .login-box {
+      background: rgba(255,255,255,0.05);
+      padding: 30px 40px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(168,85,247,0.3);
+      text-align: center;
+    }
+
+    .login-box input {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 16px;
+    }
+
+    .login-box button {
+      margin-top: 15px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.3s ease;
+    }
+
+    .login-box button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px var(--accent);
+    }
+
+    table {
+      width: 100%;
+      max-width: 1000px;
+      border-collapse: collapse;
+      margin-top: 30px;
+      background: var(--table-bg);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    th {
+      background: rgba(168,85,247,0.2);
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background: rgba(168,85,247,0.1);
+    }
+
+    #logoutBtn {
+      margin-top: 15px;
+      background: crimson;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📍 ZESKA FINEME — Device Tracker</h1>
+
+  <!-- Login Section -->
+  <div id="login-section" class="login-box">
+    <h2>Admin Login</h2>
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <!-- Dashboard Section -->
+  <div id="dashboard" style="display:none; width:100%; max-width:1100px;">
+    <button id="logoutBtn">Logout</button>
+    <table id="deviceTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Mobile</th>
+          <th>Lat / Lng</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody id="deviceBody">
+        <tr><td colspan="5" style="text-align:center;">Loading data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>© 2025 ZeskaFineme — All Rights Reserved</footer>
+
+  <!-- Firebase Scripts -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBM30Ijn_2iOvWkCjMDKSLmrBBSqL-dxHU",
+      authDomain: "zeskafineme.firebaseapp.com",
+      projectId: "zeskafineme",
+      storageBucket: "zeskafineme.firebasestorage.app",
+      messagingSenderId: "569712231881",
+      appId: "1:569712231881:web:33856fe3de8eb166445418",
+      measurementId: "G-SK280SB38G"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const loginSection = document.getElementById('login-section');
+    const dashboard = document.getElementById('dashboard');
+    const deviceBody = document.getElementById('deviceBody');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Login Function
+    loginBtn.onclick = async () => {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        alert("Login failed: " + err.message);
+      }
+    };
+
+    // Logout Function
+    logoutBtn.onclick = () => {
+      signOut(auth);
+    };
+
+    // Listen to Auth State
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        loginSection.style.display = "none";
+        dashboard.style.display = "block";
+        loadDevices();
+      } else {
+        loginSection.style.display = "block";
+        dashboard.style.display = "none";
+      }
+    });
+
+    // Firestore Live Data
+    function loadDevices() {
+      const q = query(collection(db, "devices"), orderBy("lastUpdated", "desc"));
+      onSnapshot(q, (snapshot) => {
+        deviceBody.innerHTML = "";
+        if (snapshot.empty) {
+          deviceBody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No data found</td></tr>";
+          return;
+        }
+        snapshot.forEach(doc => {
+          const d = doc.data();
+          const lat = d.lat ?? "—";
+          const lng = d.lng ?? "—";
+          const updated = d.lastUpdated?.toDate ? d.lastUpdated.toDate().toLocaleString() : "—";
+          const row = `
+            <tr>
+              <td>${d.name || "—"}</td>
+              <td>${d.email || "—"}</td>
+              <td>${d.mobile || "—"}</td>
+              <td>${lat}, ${lng}</td>
+              <td>${updated}</td>
+            </tr>
+          `;
+          deviceBody.innerHTML += row;
+        });
+      });
+    }
+  </script>
+</body>
+</html>
