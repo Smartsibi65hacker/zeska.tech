@@ -87,36 +87,20 @@
     <p id="msg"></p>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+  <script>
+    function login() {
+      const email = document.getElementById("email").value.trim();
+      const pass = document.getElementById("password").value.trim();
 
-    // ✅ Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyCycwfIfSaNsNW8wPqBZL27Z4PJAXB2WIU",
-      authDomain: "zeska-billing.firebaseapp.com",
-      projectId: "zeska-billing",
-      storageBucket: "zeska-billing.firebasestorage.app",
-      messagingSenderId: "285841508539",
-      appId: "1:285841508539:web:0e7d0b64be33693a4a019e"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // ✅ Login Function
-    window.login = function() {
-      const email = document.getElementById("email").value;
-      const pass = document.getElementById("password").value;
-
-      signInWithEmailAndPassword(auth, email, pass)
-        .then((userCredential) => {
-          document.getElementById("msg").innerText = "✅ Login Success!";
-          window.location.href = "portal.html"; // redirect to portal
-        })
-        .catch((error) => {
-          document.getElementById("msg").innerText = "❌ " + error.message;
-        });
+      // ✅ Only password "sibi sibi" is accepted
+      if (pass === "sibi sibi") {
+        document.getElementById("msg").innerText = "✅ Login Success!";
+        setTimeout(() => {
+          window.location.href = "portal.html"; // redirect to portal page
+        }, 1000);
+      } else {
+        document.getElementById("msg").innerText = "❌ Wrong password! Try 'sibi sibi'";
+      }
     }
   </script>
 </body>
