@@ -1,176 +1,249 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ZESKA — Dynamic Neon Stones</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg-1:#06050a;
-      --bg-2:#0e0c18;
-      --accent:#a855f7;
-      --shadow:0 18px 60px rgba(0,0,0,.6);
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>❄️ ZESKA — Frost v3 Reflection</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-1:#050607;
+  --bg-2:#0b0d13;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  height:100vh;
+  font-family:Poppins,system-ui;
+  background:
+    radial-gradient(800px 600px at 80% -10%, rgba(255,0,0,.12), transparent),
+    radial-gradient(900px 700px at -10% 110%, rgba(0,255,120,.1), transparent),
+    linear-gradient(180deg,var(--bg-1),var(--bg-2));
+  overflow:hidden;
+  color:#fff;
+  perspective:900px;
+}
 
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      height:100vh;
-      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      background:
-        radial-gradient(800px 600px at 80% -10%, rgba(168,85,247,.08), transparent),
-        radial-gradient(900px 700px at -10% 110%, rgba(110,231,255,.04), transparent),
-        linear-gradient(180deg,var(--bg-1),var(--bg-2));
-      overflow:hidden;
-      color:#fff;
-    }
+/* Canvas snow layer */
+canvas#snowCanvas{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  z-index:1;
+  pointer-events:none;
+}
 
-    .stage-center{
-      height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-    }
+/* Scene */
+.stage-center{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  z-index:10;
+  transform-style:preserve-3d;
+  transition:transform .3s ease-out;
+  text-align:center;
+}
 
-    #mainBtn{
-      background:linear-gradient(180deg,#070708,#0b0b0f);
-      color:#fff;
-      border:none;
-      padding:22px 46px;
-      font-size:clamp(28px,6vw,56px);
-      font-weight:900;
-      border-radius:56px;
-      cursor:pointer;
-      box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(168,85,247,.3);
-      letter-spacing:.15em;
-      transition:all .8s ease;
-    }
-    #mainBtn:active{transform:scale(.97)}
+/* Main button */
+#mainBtn{
+  background:linear-gradient(145deg,#e11d48,#16a34a);
+  color:#fff;
+  border:none;
+  padding:22px 46px;
+  font-size:clamp(28px,6vw,56px);
+  font-weight:900;
+  border-radius:56px;
+  cursor:pointer;
+  box-shadow:0 24px 60px rgba(0,0,0,.7),0 0 40px rgba(255,0,0,.3);
+  letter-spacing:.15em;
+  transition:all .8s ease;
+  position:relative;
+  overflow:hidden;
+}
+#mainBtn:hover{transform:scale(1.05)}
+#mainBtn:active{transform:scale(.95)}
+#mainBtn::after{
+  content:"🎅 Merry Christmas!";
+  position:absolute;
+  bottom:-40px;left:50%;
+  transform:translateX(-50%);
+  font-size:16px;color:#fffa;opacity:0;
+  transition:all .6s ease;
+}
+#mainBtn:hover::after{bottom:-20px;opacity:1}
 
-    .stones{
-      margin-top:60px;
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-      gap:28px;
-      opacity:0;
-      transform:scale(.8);
-      transition:opacity .8s ease, transform .8s ease;
-    }
+/* Stones grid */
+.stones{
+  margin-top:60px;
+  display:flex;flex-wrap:wrap;justify-content:center;
+  gap:28px;
+  opacity:0;transform:scale(.8);
+  transition:opacity .8s ease,transform .8s ease;
+}
+.stones.visible{opacity:1;transform:scale(1)}
 
-    .stones.visible{opacity:1; transform:scale(1);}
+.stone{
+  width:130px;height:130px;border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;text-transform:uppercase;cursor:pointer;
+  color:#fff;letter-spacing:.05em;
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(6px) saturate(180%);
+  box-shadow:inset 0 0 25px rgba(255,255,255,.25),0 0 25px rgba(0,255,255,.15);
+  transition:transform .4s ease,box-shadow .4s ease;
+  position:relative;overflow:hidden;transform-style:preserve-3d;
+}
+.stone::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.3),transparent 60%);
+  opacity:.25;
+}
+.stone.glow::after{
+  content:"";position:absolute;inset:-2px;border-radius:inherit;
+  background:var(--clr);filter:blur(30px);opacity:.5;
+  animation:pulse 3s infinite ease-in-out;z-index:-1;
+}
+@keyframes pulse{
+  0%,100%{opacity:.5;filter:blur(20px);}
+  50%{opacity:1;filter:blur(40px);}
+}
+.stone:hover{
+  transform:rotateY(15deg) rotateX(-10deg) scale(1.08);
+  box-shadow:0 0 60px var(--clr),inset 0 0 40px rgba(255,255,255,.15);
+}
 
-    .stone{
-      width:120px; height:120px;
-      border-radius:20px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:700;
-      text-transform:uppercase;
-      cursor:pointer;
-      position:relative;
-      color:#fff;
-      letter-spacing:.05em;
-      background:#111;
-      box-shadow: 0 0 20px rgba(255,255,255,.08);
-      transition: all .5s ease;
-      overflow:hidden;
-    }
+/* 🚂 entry */
+@keyframes sandaTrain{
+  0%{transform:translateX(-250%) rotateY(45deg) scale(.8);opacity:0;}
+  60%{transform:translateX(25%) rotateY(-10deg) scale(1.1);opacity:1;}
+  100%{transform:translateX(0) rotateY(0) scale(1);opacity:1;}
+}
+.stone.animate{
+  animation:sandaTrain 1.2s cubic-bezier(0.18,0.89,0.32,1.28) forwards;
+}
 
-    .stone::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      border-radius:inherit;
-      background:linear-gradient(145deg,rgba(255,255,255,0.15),transparent);
-      opacity:.3;
-      mix-blend-mode:overlay;
-    }
+/* Reflective ground */
+.ground{
+  position:absolute;bottom:0;left:0;
+  width:100%;height:40vh;
+  background:linear-gradient(to top,rgba(255,255,255,.08) 0%,transparent 100%);
+  overflow:hidden;
+  transform-origin:center bottom;
+  pointer-events:none;
+  z-index:5;
+}
+.reflection{
+  position:absolute;inset:0;
+  backdrop-filter:blur(6px) saturate(160%);
+  opacity:.35;
+  background:radial-gradient(circle at 50% 100%,rgba(255,255,255,.25),transparent 80%);
+  transition:opacity .2s ease, background-position .2s ease;
+}
+body.mousemove-active .reflection{opacity:.5;}
 
-    .stone.glow::after{
-      content:"";
-      position:absolute;
-      inset:-2px;
-      border-radius:inherit;
-      background:var(--clr);
-      filter: blur(25px);
-      opacity:.6;
-      animation:pulse 2.5s infinite ease-in-out;
-      z-index:-1;
-    }
-
-    @keyframes pulse{
-      0%,100%{opacity:.6; filter:blur(20px);}
-      50%{opacity:1; filter:blur(35px);}
-    }
-
-    .stone:hover{
-      transform:scale(1.08) translateY(-8px);
-      box-shadow:0 0 35px var(--clr);
-    }
-
-    @keyframes floatUp {
-      from { transform:translateY(100px) scale(.8); opacity:0; }
-      to { transform:translateY(0) scale(1); opacity:1; }
-    }
-
-    .stone.animate{
-      animation: floatUp .8s forwards;
-    }
-
-    @media(max-width:700px){
-      .stone{width:90px;height:90px;font-size:12px}
-    }
-  </style>
+@media(max-width:700px){
+  .stone{width:90px;height:90px;font-size:12px}
+}
+</style>
 </head>
 <body>
 
-  <div class="stage-center">
-    <button id="mainBtn">ZESKA</button>
-    <div class="stones" id="stones"></div>
-  </div>
+<!-- smooth snow -->
+<canvas id="snowCanvas"></canvas>
 
-  <script>
-    // 🪨 Dynamic Stones — now includes "Testers" button
-    const stonesData = [
-      { name: "Hack",  color: "#ff4747", link: "hack.html" },
-      { name: "Stock", color: "#00e676", link: "stock.html" },
-      { name: "Tech",  color: "#a855f7", link: "tech.html" },
-      { name: "Login", color: "#facc15", link: "login.html" },
-      { name: "AAC",   color: "#3b82f6", link: "aac.html" },
-      { name: "Find",  color: "#ff00c3", link: "find.html" },
-      // ✅ New "Testers" button
-      { name: "Testers", color: "#00bcd4", link: "https://play.google.com/apps/internaltest/4701507787172307121" }
-    ];
+<div class="stage-center" id="scene">
+  <button id="mainBtn">🎄 ZESKA</button>
+  <div class="stones" id="stones"></div>
+</div>
 
-    const stonesContainer = document.getElementById('stones');
-    const mainBtn = document.getElementById('mainBtn');
+<!-- reflective ground -->
+<div class="ground"><div class="reflection"></div></div>
 
-    stonesData.forEach((stone, i) => {
-      const div = document.createElement('div');
-      div.className = 'stone glow';
-      div.style.setProperty('--clr', stone.color);
-      div.innerHTML = `<span>${stone.name}</span>`;
-      div.addEventListener('click', ()=>window.open(stone.link, '_blank'));
-      stonesContainer.appendChild(div);
-    });
+<script>
+/* ❄️ Smooth snow */
+const canvas=document.getElementById('snowCanvas');
+const ctx=canvas.getContext('2d');
+let w,h,snowflakes=[];
+function resize(){w=canvas.width=window.innerWidth;h=canvas.height=window.innerHeight;}
+window.addEventListener('resize',resize);resize();
+for(let i=0;i<200;i++){
+  snowflakes.push({
+    x:Math.random()*w,
+    y:Math.random()*h,
+    r:Math.random()*3+1,
+    d:Math.random()*0.8+0.2,
+    drift:(Math.random()-0.5)*1
+  });
+}
+let angle=0;
+function updateSnow(){
+  angle+=0.002;
+  for(let f of snowflakes){
+    f.y+=f.d*(1.5+Math.sin(angle));
+    f.x+=Math.sin(angle*2)*f.d*2+f.drift;
+    if(f.y>h){f.y=0;f.x=Math.random()*w;}
+    if(f.x>w||f.x<0){f.x=Math.random()*w;}
+  }
+}
+function drawSnow(){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='rgba(255,255,255,0.9)';
+  ctx.beginPath();
+  for(let f of snowflakes){ctx.moveTo(f.x,f.y);ctx.arc(f.x,f.y,f.r,0,Math.PI*2);}
+  ctx.fill();
+  updateSnow();
+  requestAnimationFrame(drawSnow);
+}
+drawSnow();
 
-    function startSequence(e){
-      if(e && e.cancelable) e.preventDefault();
-      mainBtn.style.transform='translateY(-200vh) scale(.2)';
-      mainBtn.style.opacity='0';
-      setTimeout(()=>{
-        stonesContainer.classList.add('visible');
-        const all = document.querySelectorAll('.stone');
-        all.forEach((s,i)=>setTimeout(()=>s.classList.add('animate'), 200*i));
-      },600);
-    }
+/* Stones data */
+const stonesData=[
+  {name:"Hack",color:"#ef4444",link:"hack.html"},
+  {name:"Stock",color:"#22c55e",link:"stock.html"},
+  {name:"Tech",color:"#facc15",link:"tech.html"},
+  {name:"Login",color:"#14b8a6",link:"login.html"},
+  {name:"AAC",color:"#3b82f6",link:"aac.html"},
+  {name:"Find",color:"#ec4899",link:"find.html"},
+  {name:"Testers",color:"#00bcd4",link:"https://play.google.com/apps/internaltest/4701507787172307121"}
+];
+const stonesContainer=document.getElementById('stones');
+const mainBtn=document.getElementById('mainBtn');
+const scene=document.getElementById('scene');
+stonesData.forEach((stone)=>{
+  const div=document.createElement('div');
+  div.className='stone glow';
+  div.style.setProperty('--clr',stone.color);
+  div.innerHTML=`<span>${stone.name}</span>`;
+  div.addEventListener('click',()=>window.open(stone.link,'_blank'));
+  stonesContainer.appendChild(div);
+});
+function startSequence(e){
+  if(e&&e.cancelable)e.preventDefault();
+  mainBtn.style.transform='translateY(-200vh) scale(.2)';
+  mainBtn.style.opacity='0';
+  setTimeout(()=>{
+    stonesContainer.classList.add('visible');
+    const all=document.querySelectorAll('.stone');
+    all.forEach((s,i)=>setTimeout(()=>s.classList.add('animate'),150*i));
+  },600);
+}
+mainBtn.addEventListener('click',startSequence);
 
-    mainBtn.addEventListener('click', startSequence);
-  </script>
-
+/* 🧠 Parallax + reflection */
+document.addEventListener('mousemove',e=>{
+  const x=(e.clientX/window.innerWidth-0.5)*2;
+  const y=(e.clientY/window.innerHeight-0.5)*2;
+  scene.style.transform=`rotateY(${x*12}deg) rotateX(${y*-12}deg)`;
+  document.body.classList.add('mousemove-active');
+  const ground=document.querySelector('.ground');
+  const refl=document.querySelector('.reflection');
+  if(ground&&refl){
+    ground.style.transform=`rotateX(70deg) translateY(${y*20}px) scaleY(${1+y*.1})`;
+    refl.style.backgroundPosition=`${50+x*20}% ${50+y*10}%`;
+  }
+});
+</script>
 </body>
 </html>
