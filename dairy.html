@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>🥛 Arumai Dairy — Billing System</title>
+<style>
+:root {
+  --green: #2e7d32;
+  --green-dark: #256628;
+  --bg: #f5f5f5;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+body { background: var(--bg); color: #333; }
+
+header {
+  background: var(--green);
+  color: white;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+h1 { font-size: 22px; margin: 4px 0; }
+button {
+  background: var(--green);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+button:hover { background: var(--green-dark); }
+
+main {
+  padding: 10px 16px;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 14px;
+}
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 14px;
+}
+label { display:block; margin-top:8px; font-size:13px; color:#555; }
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+th, td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  font-size: 13px;
+  text-align: left;
+}
+th { background: #e8f5e9; }
+tr:hover { background: #f1f8e9; }
+.toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.search-box { flex:1; margin-left:10px; }
+
+/* MPIN LOCK */
+#mpin-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, #2e7d32, #4caf50);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  color: white;
+}
+#mpin-box {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(8px);
+  padding: 24px 30px;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  width: 90%;
+  max-width: 320px;
+}
+#mpin-input {
+  padding: 10px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  width: 100%;
+  max-width: 180px;
+  letter-spacing: 6px;
+}
+#mpin-btn {
+  background: white;
+  color: #2e7d32;
+  border: none;
+  margin-top: 12px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+}
+#mpin-msg { color: #ffeb3b; font-size: 13px; margin-top: 6px; }
+
+.hidden { display: none; }
+.report-wrap { background:white; padding:14px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+.report-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+.report-table { width:100%; border-collapse:collapse; }
+.report-table th, .report-table td { border:1px solid #ddd; padding:6px 8px; font-size:13px; }
+.report-table th { background:#fffde7; }
+@media print {
+  header, .card, .no-print { display:none !important; }
+  #report-card { display:block !important; box-shadow:none; padding:0; }
+  body { background:white; }
+  .report-table th, .report-table td { font-size:12px; }
+}
+@media (max-width:768px){main{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- 🔐 MPIN Lock -->
+<div id="mpin-screen">
+  <div id="mpin-box">
+    <h2>🔐 Enter MPIN</h2>
+    <input id="mpin-input" type="password" maxlength="4" placeholder="****" />
+    <button id="mpin-btn">Unlock</button>
+    <p id="mpin-msg"></p>
+  </div>
+</div>
+
+<header>
+  <h1>🥛 Arumai Dairy Billing</h1>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button id="changeMPIN">⚙️ Change MPIN</button>
+    <button id="btn-generate-tamil">🧾 டெமோ தரவு</button>
+    <button id="btn-open-report">📄 Report</button>
+  </div>
+</header>
+
+<main>
+  <!-- Entry -->
+  <section class="card">
+    <h3>Customer Entry</h3>
+    <label>Customer Number</label><input id="cust-code" placeholder="101">
+    <label>Customer Name</label><input id="cust-name" placeholder="Ex: Kumar">
+    <label>Milk Type</label><select id="cust-type"><option>Buffalo</option><option>Cow</option><option>Toned</option></select>
+    <label>Rate (₹/L)</label><input id="cust-rate" type="number" placeholder="56">
+    <label>Milk Quantity (L)</label><input id="cust-liters" type="number" placeholder="10.5">
+    <label>Phone</label><input id="cust-phone" placeholder="Optional">
+    <button id="btn-save">💾 Save</button>
+  </section>
+
+  <!-- Table -->
+  <section class="card">
+    <div class="toolbar">
+      <input id="search" placeholder="🔍 Search" class="search-box">
+      <button id="btn-clear">Clear</button>
+    </div>
+    <table id="cust-table">
+      <thead><tr><th>No</th><th>Name</th><th>Type</th><th>Rate</th><th>Liters</th><th>Phone</th><th>Action</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Report -->
+  <section class="card hidden" id="report-card">
+    <div class="report-wrap">
+      <h3>📄 Monthly Report</h3>
+      <div class="report-toolbar">
+        <label>Customer</label><select id="rep-customer"></select>
+        <label>Month</label><select id="rep-month"><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option><option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option></select>
+        <label>Year</label><input id="rep-year" type="number" style="width:120px">
+        <button id="btn-show-report">Show</button>
+        <button id="btn-print-report" class="no-print">🖨️ Print</button>
+        <button id="btn-avg-report" class="no-print">📊 Avg</button>
+      </div>
+      <div id="rep-header" style="display:flex;justify-content:space-between;margin:6px 0;">
+        <div><strong>ARUMAI DAIRY FARM</strong><div style="font-size:12px;color:#666">A. Vallalpatty</div></div>
+        <div><strong id="rep-cust-name">—</strong><div id="rep-cust-code" style="font-size:12px;color:#666"></div></div>
+      </div>
+      <table class="report-table" id="rep-table">
+        <thead><tr><th>Date</th><th>AM (L)</th><th>PM (L)</th><th>Total (L)</th><th>Rate</th><th>Amount</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><th>Total</th><th id="sum-mor">0</th><th id="sum-eve">0</th><th id="sum-lit">0</th><th></th><th id="sum-amt">0</th><th></th></tr></tfoot>
+      </table>
+      <div id="avg-result" style="margin-top:10px;font-weight:bold;color:#2e7d32;"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+// 🔐 MPIN Logic
+function getMPIN(){return localStorage.getItem('appMPIN')||'1234';}
+function setMPIN(v){localStorage.setItem('appMPIN',v);}
+const mpinScreen=document.getElementById('mpin-screen');
+document.getElementById('mpin-btn').onclick=()=>{
+  const val=document.getElementById('mpin-input').value.trim();
+  if(val===getMPIN()){mpinScreen.style.display='none';}else{document.getElementById('mpin-msg').textContent='❌ Wrong MPIN';}
+};
+document.getElementById('changeMPIN').onclick=()=>{
+  const old=prompt("Enter current MPIN:");
+  if(old!==getMPIN())return alert("❌ Wrong MPIN");
+  const n=prompt("Enter new 4-digit MPIN:");
+  if(!n||n.length!==4||isNaN(n))return alert("⚠️ Invalid MPIN");
+  setMPIN(n);alert("✅ MPIN Updated");
+};
+
+// 💾 Local DB
+let customers=JSON.parse(localStorage.getItem('customers')||'[]');
+let bills=JSON.parse(localStorage.getItem('bills')||'[]');
+
+// 📋 Customer CRUD
+function renderTable(f=''){const t=document.querySelector('#cust-table tbody');t.innerHTML='';
+customers.filter(c=>c.name.toLowerCase().includes(f.toLowerCase())||c.code.includes(f))
+.forEach(c=>{t.innerHTML+=`<tr><td>${c.code}</td><td>${c.name}</td><td>${c.type}</td><td>${c.rate}</td><td>${c.liters}</td><td>${c.phone}</td>
+<td><button onclick="editCust('${c.code}')">✏️</button><button onclick="delCust('${c.code}')">🗑️</button></td></tr>`});}
+function saveCust(){
+  const c={code:val('cust-code'),name:val('cust-name'),type:val('cust-type'),
+  rate:parseFloat(val('cust-rate')||0),liters:parseFloat(val('cust-liters')||0),phone:val('cust-phone')};
+  if(!c.code||!c.name)return alert('⚠️ Fill details');
+  const ex=customers.find(x=>x.code===c.code);ex?Object.assign(ex,c):customers.push(c);
+  localStorage.setItem('customers',JSON.stringify(customers));renderTable();addBill(c.code,c.liters);clr();}
+function delCust(x){if(confirm('Delete?')){customers=customers.filter(c=>c.code!==x);localStorage.setItem('customers',JSON.stringify(customers));renderTable();}}
+function editCust(x){const c=customers.find(v=>v.code===x);if(!c)return;['code','name','type','rate','liters','phone'].forEach(i=>{const e=document.getElementById('cust-'+i);if(e)e.value=c[i];});}
+function val(id){return document.getElementById(id).value.trim();}
+function clr(){document.querySelectorAll('input').forEach(i=>i.value='');}
+
+// 💧 Add Bill
+function addBill(code,lit){if(!lit)return;const cust=customers.find(c=>c.code===code);if(!cust)return;
+const now=new Date(),h=now.getHours(),isM=h>=3&&h<12,date=now.toISOString().slice(0,10);
+let b=bills.find(x=>x.code===code&&x.date===date);if(!b){b={code,date,morning:0,evening:0,rate:cust.rate};bills.push(b);}
+if(isM)b.morning+=lit;else b.evening+=lit;localStorage.setItem('bills',JSON.stringify(bills));}
+
+// 🗓 Report
+function refreshReportCustomers(){
+  repCust.innerHTML='<option value="">--Select--</option>'+customers.map(c=>`<option value="${c.code}">${c.code} - ${c.name}</option>`).join('');
+}
+function report(){const code=repCust.value,year=+repYear.value,month=+repMonth.value;
+if(!code)return alert('Select customer');if(!year)return alert('Enter year');
+const from=new Date(year,month,1),to=new Date(year,month+1,0);
+const rows=bills.filter(b=>b.code===code&&new Date(b.date)>=from&&new Date(b.date)<=to).sort((a,b)=>new Date(a.date)-new Date(b.date));
+let sM=0,sE=0,sL=0,sA=0,tb=document.querySelector('#rep-table tbody');tb.innerHTML='';
+rows.forEach(r=>{const m=+r.morning||0,e=+r.evening||0,t=m+e,a=t*(+r.rate||0);sM+=m;sE+=e;sL+=t;sA+=a;
+tb.innerHTML+=`<tr><td>${r.date}</td><td>${m.toFixed(2)}</td><td>${e.toFixed(2)}</td><td>${t.toFixed(2)}</td><td>${r.rate}</td><td>${a.toFixed(2)}</td><td></td></tr>`;});
+id('sum-mor').textContent=sM.toFixed(2);id('sum-eve').textContent=sE.toFixed(2);id('sum-lit').textContent=sL.toFixed(2);id('sum-amt').textContent=sA.toFixed(2);}
+function avg(){const rows=document.querySelectorAll('#rep-table tbody tr');if(!rows.length)return alert('Show report first');
+let d=rows.length,sA=0,sL=0;rows.forEach(r=>{sA+=+r.children[5].textContent;sL+=+r.children[3].textContent;});
+id('avg-result').innerHTML=`📊 Avg Daily: ₹${(sA/d).toFixed(2)} | Avg ₹/L: ${(sA/sL).toFixed(2)}`;}
+function id(x){return document.getElementById(x);}
+
+// 🧩 Demo
+function demo(){customers=[];bills=[];for(let i=1;i<=50;i++){customers.push({code:`C${i}`,name:`Customer ${i}`,type:'Cow',rate:55,liters:0,phone:'9xxxxxxxxx'});}
+const now=new Date();for(let c of customers){for(let d=new Date(now.getFullYear(),now.getMonth(),1);d<=now;d.setDate(d.getDate()+1)){bills.push({code:c.code,date:d.toISOString().slice(0,10),morning:Math.random()*3,evening:Math.random()*3,rate:55});}}
+localStorage.setItem('customers',JSON.stringify(customers));localStorage.setItem('bills',JSON.stringify(bills));renderTable();refreshReportCustomers();alert('Demo loaded');}
+
+// ⚙️ Events
+id('btn-save').onclick=saveCust;
+id('btn-clear').onclick=()=>{id('search').value='';renderTable();};
+id('search').oninput=e=>renderTable(e.target.value);
+id('btn-generate-tamil').onclick=demo;
+const repCust=id('rep-customer'),repMonth=id('rep-month'),repYear=id('rep-year');
+id('btn-open-report').onclick=()=>id('report-card').classList.toggle('hidden');
+id('btn-show-report').onclick=report;id('btn-print-report').onclick=()=>window.print();id('btn-avg-report').onclick=avg;
+
+renderTable();refreshReportCustomers();repYear.value=new Date().getFullYear();
+</script>
+</body>
+</html>
