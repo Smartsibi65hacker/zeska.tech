@@ -3,449 +3,256 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ZESKA – HyperGlass OS v4</title>
+<title>ZESKA </title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 
 <style>
+/* ==== GLOBAL THEME VARIABLES ==== */
 :root{
-  --glass-dark: rgba(255,255,255,0.10);
-  --glass-light: rgba(0,0,0,0.10);
-  --border-dark: rgba(255,255,255,0.25);
-  --border-light: rgba(0,0,0,0.25);
-  --text-dark: #f5f5f7;
-  --text-light: #0b0b0d;
-  --dim-dark:#bfc0c5;
-  --dim-light:#444;
-  --blur-big: blur(28px);
-  --radius:26px;
-  --max:1300px;
+  --blur:24px;
+  --radius:20px;
+  --text:#fff;
+  --dim:#999;
+  --glass:rgba(255,255,255,0.08);
+  --border:rgba(255,255,255,0.18);
+  --bg:#000;
 }
 
 body.light{
-  --glass-dark: rgba(0,0,0,0.06);
-  --border-dark: rgba(0,0,0,0.20);
-  --text-dark:#0b0b0d;
-  --dim-dark:#444;
-  background:linear-gradient(180deg,#fafafa,#eaeaea);
-  color:#0b0b0d;
+  --bg:#f5f5f5;
+  --glass:rgba(0,0,0,0.05);
+  --border:rgba(0,0,0,0.15);
+  --text:#111;
+  --dim:#555;
 }
 
-*{margin:0;padding:0;box-sizing:border-box}
+/* ==== LAYOUT ==== */
 body{
-  font-family:Poppins,system-ui;
-  background:#000;
-  color:var(--text-dark);
+  margin:0;
+  font-family:Poppins, system-ui;
+  background:var(--bg);
+  color:var(--text);
+  transition:.3s ease;
   overflow-x:hidden;
 }
 
-/* Parallax BG */
-.bg{
-  position:fixed;inset:0;
-  background:
-    radial-gradient(circle at 20% 0%, rgba(255,255,255,0.10), transparent 60%),
-    radial-gradient(circle at 80% 100%, rgba(255,255,255,0.10), transparent 60%);
-  z-index:-1;
-  transition:transform .2s ease-out;
-}
-
-/* Container */
-.wrap{
-  max-width:var(--max);
-  margin:40px auto;
-  padding:20px;
-}
-
-/* Header */
 header{
-  padding:18px 26px;
+  backdrop-filter:blur(var(--blur));
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px 24px;
+  margin:18px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  background:var(--glass-dark);
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  border-radius:var(--radius);
-  position:sticky;top:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,0.45);
-  z-index:100;
-}
-.logo-box{display:flex;gap:14px;align-items:center}
-.logo{
-  width:60px;height:60px;border-radius:20px;
-  background:var(--glass-dark);border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:22px;color:#000;
-}
-nav{display:flex;gap:24px}
-nav a{text-decoration:none;color:var(--dim-dark);font-weight:600;transition:.2s}
-nav a:hover{color:var(--text-dark)}
-.cta{
-  padding:12px 20px;
-  background:var(--glass-dark);
-  border-radius:16px;
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  color:#000;font-weight:700;text-decoration:none;
 }
 
-/* Hero */
-.hero{
-  margin-top:40px;
-  display:grid;
-  grid-template-columns:1fr 420px;
-  gap:30px;
+/* ==== NAV ==== */
+nav a{
+  margin:0 12px;
+  text-decoration:none;
+  color:var(--dim);
+  font-weight:600;
+  transition:.25s;
 }
+nav a:hover{color:var(--text)}
+
+/* ==== COMPONENTS ==== */
 .card{
-  padding:32px;
-  background:var(--glass-dark);
-  border:1px solid var(--border-dark);
+  backdrop-filter:blur(var(--blur));
+  background:var(--glass);
+  border:1px solid var(--border);
   border-radius:var(--radius);
-  backdrop-filter:var(--blur-big);
-  box-shadow:0 25px 60px rgba(0,0,0,0.45);
-  opacity:0;transform:translateY(40px);
-  transition:opacity .8s ease, transform .8s ease;
+  padding:26px;
+  margin-bottom:18px;
+  opacity:0;
+  transform:translateY(18px);
+  transition:.5s ease;
 }
-h2{font-size:42px;margin-bottom:16px}
-p{color:var(--dim-dark);line-height:1.6}
+.card.show{
+  opacity:1;
+  transform:translateY(0);
+}
 
-/* Buttons */
-.btn{
-  padding:12px 18px;border-radius:16px;
-  background:rgba(255,255,255,0.16);
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  font-weight:600;color:#fff;cursor:pointer;
-  transition:.2s;
-}
-.btn:hover{background:rgba(255,255,255,0.26);color:#000}
-
-/* Grid */
-.section-title{
-  margin-top:60px;margin-bottom:14px;
-  font-size:24px;font-weight:700;
-}
+/* ==== GRID ==== */
 .grid{
   display:grid;
-  gap:20px;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:18px;
+  grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
 }
 
-/* Magnetic hover */
-.magnetic{
-  height:120px;
+.item{
+  text-align:center;
+  background:var(--glass);
+  border:1px solid var(--border);
+  padding:14px;
   border-radius:var(--radius);
-  background:var(--glass-dark);
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  box-shadow:0 18px 40px rgba(0,0,0,0.45);
-  transition:.25s ease;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;font-weight:600;
-  color:var(--text-dark);
-}
-.magnetic:hover{transform:scale(1.05)}
-
-/* Dock */
-.dock{
-  position:fixed;bottom:20px;left:50%;
-  transform:translateX(-50%);
-  display:flex;gap:16px;
-  background:var(--glass-dark);
-  padding:16px 26px;
-  border-radius:30px;
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  box-shadow:0 10px 30px rgba(0,0,0,0.45);
-}
-
-/* Theme Toggle */
-.theme-toggle{
-  position:fixed;top:20px;right:20px;
-  background:var(--glass-dark);
-  padding:12px 16px;border-radius:14px;
-  border:1px solid var(--border-dark);
-  backdrop-filter:var(--blur-big);
-  cursor:pointer;font-weight:600;color:#fff;
-}
-
-/* Apple Clean Portfolio */
-.apple-grid{
-  display:grid;
-  gap:28px;
-  grid-template-columns:repeat(auto-fit, minmax(300px,1fr));
-}
-
-.apple-card{
-  background:#fff0;
-  border-radius:22px;
-  border:1px solid rgba(255,255,255,0.08);
-  overflow:hidden;
-  transition:.25s ease;
   cursor:pointer;
-  box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  transition:.25s;
 }
+.item:hover{transform:scale(1.05)}
 
-body.light .apple-card{
-  border:1px solid rgba(0,0,0,0.12);
-  box-shadow:0 8px 16px rgba(0,0,0,0.10);
+/* ==== DOCK ==== */
+.dock{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:12px;
+  padding:14px 22px;
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:50px;
+  backdrop-filter:blur(var(--blur));
 }
-
-.apple-card:hover{
-  transform:translateY(-6px);
-  box-shadow:0 16px 28px rgba(0,0,0,0.35);
-}
-
-.apple-img{
-  width:100%;
-  height:220px;
-  object-fit:cover;
-}
-
-.apple-info{
-  padding:18px 20px;
-}
-
-.apple-info h4{
-  margin:0;
-  font-size:20px;
-  color:var(--text-dark);
-}
-
-.apple-info p{
-  margin-top:6px;
+.dock div{
+  padding:10px 16px;
+  border-radius:10px;
+  cursor:pointer;
+  transition:.25s;
   font-size:14px;
-  color:var(--dim-dark);
 }
-</style>
+.dock div:hover{transform:scale(1.2)}
+
+/* ==== MOBILE ==== */
+@media(max-width:600px){
+  header{flex-direction:column;gap:10px;text-align:center}
+  .dock{transform:translateX(-50%) scale(.90)}
+}
 </style>
 </head>
-
 <body>
 
-<div class="bg" id="bg"></div>
-<button class="theme-toggle" onclick="toggleTheme()">Theme</button>
-
-<div class="wrap">
-
 <header>
-  <div class="logo-box">
-    <div class="logo">ZK</div>
-    <div>
-      <h3>ZESKA</h3>
-      <p style="font-size:12px;color:var(--dim-dark)">HyperGlass OS v4</p>
-    </div>
-  </div>
-  <nav>
-    <a href="#services">Services</a>
-    <a href="#portfolio">Portfolio</a>
-    <a href="#team">Team</a>
-    <a href="#contact">Contact</a>
-  </nav>
-  <a class="cta">Download</a>
+  <h2 id="brand"></h2>
+  <nav id="nav"></nav>
+  <button id="theme">D/W</button>
 </header>
 
-<section class="hero">
-  <div class="card reveal">
-    <h2>Premium Ultra-Smooth UI  
-    <br>Built for Modern Brands</h2>
-    <p>Your page now includes: Scroll animations, parallax, refraction glass, dock, 3D hover, theme switch & more.</p>
+<div class="wrap" style="padding:20px;">
 
-    <div style="margin-top:20px;display:flex;gap:14px;flex-wrap:wrap">
-      <button class="btn">Explore Services</button>
-      <button class="btn">View Portfolio</button>
-    </div>
-  </div>
+  <h3>Quick Access</h3>
+  <div class="grid" id="quick"></div>
 
-  <div class="card reveal">
-    <h3>Quick Access</h3>
-    <p>Fast entry into the ecosystem</p>
-    <div class="grid">
-      <div class="magnetic">Apps</div>
-      <div class="magnetic">Products</div>
-      <div class="magnetic">Clients</div>
-    </div>
-  </div>
-</section>
+  <h3>Shortcuts</h3>
+  <div class="grid" id="shortcuts"></div>
 
-<h3 class="section-title">Project Shortcuts</h3>
-<div class="grid">
-  <div class="magnetic" onclick="window.open('hack.html')">Hack</div>
-  <div class="magnetic" onclick="window.open('stock.html')">Stock</div>
-  <div class="magnetic" onclick="window.open('tech.html')">Tech</div>
-  <div class="magnetic" onclick="window.open('login.html')">Login</div>
-  <div class="magnetic" onclick="window.open('aac.html')">AAC</div>
-  <div class="magnetic" onclick="window.open('find.html')">Find</div>
-  <div class="magnetic" onclick="window.open('dairy.html')">Dairy</div>
-  <div class="magnetic" onclick="window.open('https://play.google.com/apps/internaltest/4701507787172307121')">Testers</div>
+  <h3>Portfolio</h3>
+  <div class="grid" id="portfolio"></div>
+
+  <h3>Project Directory</h3>
+  <div class="grid" id="directory"></div>
+
+  <h3>Team</h3>
+  <div class="grid" id="team"></div>
+  <h3>Contact</h3>
+  <div class="item" onclick="window.location.href='tel:9080438088'">📞 Call: 9080438088</div>
 </div>
 
-<h3 class="section-title" onclick="toggleDirectory()" style="cursor:pointer;">Project Directory ▼</h3>
-
-<div id="projectDirectory" class="card" style="padding:25px;display:none;">
-  <h2 style="margin-bottom:20px;">ZESKA • Project Directory</h2>
-
-  <h3 class="section-title">🌐 Web Apps</h3>
-  <div class="grid">
-
-    <div class="magnetic" onclick="window.open('1.html')">1.html</div>
-    <div class="magnetic" onclick="window.open('10.html')">10.html</div>
-    <div class="magnetic" onclick="window.open('11.html')">11.html</div>
-    <div class="magnetic" onclick="window.open('12.html')">12.html</div>
-
-    <div class="magnetic" onclick="window.open('attendance.html')">Attendance</div>
-    <div class="magnetic" onclick="window.open('billing.html')">Billing</div>
-    <div class="magnetic" onclick="window.open('certificate.html')">Certificate</div>
-    <div class="magnetic" onclick="window.open('corn3.html')">corn3</div>
-    <div class="magnetic" onclick="window.open('corn4.html')">corn4</div>
-    <div class="magnetic" onclick="window.open('fs1.html')">fs1.html</div>
-    <div class="magnetic" onclick="window.open('fs2.html')">fs2.html</div>
-    <div class="magnetic" onclick="window.open('fs3.html')">fs3.html</div>
-    <div class="magnetic" onclick="window.open('sibi.html')">sibi.html</div>
-    <div class="magnetic" onclick="window.open('portal.html')">Portal</div>
-    <div class="magnetic" onclick="window.open('stock-logs.html')">Stock Logs</div>
-
-  </div>
-
-  <h3 class="section-title">🐍 Python Tools</h3>
-  <div class="grid">
-    <div class="magnetic" onclick="window.open('main.py')">main.py</div>
-    <div class="magnetic" onclick="window.open('sibi.py')">sibi.py</div>
-    <div class="magnetic" onclick="window.open('voice_server.py')">voice_server</div>
-    <div class="magnetic" onclick="window.open('geo_payroll.py')">geo_payroll</div>
-  </div>
-
-  <h3 class="section-title">📱 APK</h3>
-  <div class="grid">
-    <div class="magnetic">phph.apk</div>
-    <div class="magnetic">test.apk</div>
-  </div>
-
-  <h3 class="section-title">📄 Docs</h3>
-  <div class="grid">
-    <div class="magnetic">output.pdf</div>
-    <div class="magnetic">output.docx</div>
-    <div class="magnetic">README.md</div>
-  </div>
-</div>
-
-
-<h3 class="section-title">Services</h3>
-<div class="grid">
-  <div class="magnetic">UI / UX Design</div>
-  <div class="magnetic">Mobile Apps</div>
-  <div class="magnetic">Cloud Backend</div>
-</div>
-
-<h3 class="section-title">Portfolio</h3>
-<div class="apple-grid">
-
-  <div class="apple-card" onclick="window.open('project-a.html')">
-    <img src="https://images.unsplash.com/photo-1581276879432-15a19d654956" class="apple-img">
-    <div class="apple-info">
-      <h4>Modern Dashboard UI</h4>
-      <p>Web App • 2024</p>
-    </div>
-  </div>
-
-  <div class="apple-card" onclick="window.open('project-b.html')">
-    <img src="https://images.unsplash.com/photo-1506765515384-028b60a970df" class="apple-img">
-    <div class="apple-info">
-      <h4>ZESKA Mobile App</h4>
-      <p>Flutter • 2025</p>
-    </div>
-  </div>
-
-  <div class="apple-card" onclick="window.open('project-c.html')">
-    <img src="https://images.unsplash.com/photo-1518432031352-d6fc5c10da5a" class="apple-img">
-    <div class="apple-info">
-      <h4>AI Voice Dashboard</h4>
-      <p>AI • Backend</p>
-    </div>
-  </div>
-
-</div>
-
-<h3 class="section-title">Team</h3>
-<div class="grid">
-  <div class="magnetic">Sibi – Founder</div>
-  <div class="magnetic">Sibi – Engineer</div>
-  <div class="magnetic">Sibi – Designer</div>
-</div>
-
-<h3 class="section-title">Contact</h3>
-<div class="card" style="padding:20px">
-  <p>Email: zeskateam@gmail.com</p>
-  <p>Number: 9080438088</p>
-  <p>Location: Madurai, India</p>
-</div>
-
-<footer style="margin-top:60px;text-align:center;color:var(--dim-dark)">
-  © ZESKA – the begining by sibi 
-</footer>
-
-</div>
-
-<!-- Dock -->
-<div class="dock">
-  <div class="dock-item" onclick="window.open('1.html','_blank')">1</div>
-  <div class="dock-item" onclick="window.open('10.html','_blank')">10</div>
-  <div class="dock-item" onclick="window.open('11.html','_blank')">11</div>
-  <div class="dock-item" onclick="window.open('12.html','_blank')">12</div>
-  <div class="dock-item" onclick="window.open('attendance.html','_blank')">Attendance</div>
-  <div class="dock-item" onclick="window.open('billing.html','_blank')">Billing</div>
-  <div class="dock-item" onclick="window.open('certificate.html','_blank')">Certificate</div>
-  <div class="dock-item" onclick="window.open('corn3.html','_blank')">corn3</div>
-  <div class="dock-item" onclick="window.open('corn4.html','_blank')">corn4</div>
-  <div class="dock-item" onclick="window.open('fs1.html','_blank')">fs1</div>
-  <div class="dock-item" onclick="window.open('fs2.html','_blank')">fs2</div>
-  <div class="dock-item" onclick="window.open('fs3.html','_blank')">fs3</div>
-  <div class="dock-item" onclick="window.open('sibi.html','_blank')">sibi</div>
-  <div class="dock-item" onclick="window.open('portal.html','_blank')">Portal</div>
-  <div class="dock-item" onclick="window.open('stock-logs.html','_blank')">Stock</div>
-  <div class="dock-item" onclick="window.open('main.py','_blank')">main.py</div>
-  <div class="dock-item" onclick="window.open('sibi.py','_blank')">sibi.py</div>
-  <div class="dock-item" onclick="window.open('voice_server.py','_blank')">voice</div>
-  <div class="dock-item" onclick="window.open('geo_payroll.py','_blank')">geo</div>
-</div>
+<div class="dock" id="dock"></div>
 
 <script>
-/* Scroll reveal */
-const reveals=document.querySelectorAll('.reveal');
-window.addEventListener('scroll',()=>{
-  reveals.forEach(el=>{
-    const top=el.getBoundingClientRect().top;
-    if(top<window.innerHeight-100){
-      el.style.opacity=1;
-      el.style.transform='translateY(0)';
-    }
-  });
-});
+/* ===========================
+     CONFIG (Editable)
+===========================*/
+const ZESKA_DATA = {
 
-/* Parallax */
-document.addEventListener('mousemove',e=>{
-  const x=(e.clientX/window.innerWidth - 0.5)*20;
-  const y=(e.clientY/window.innerHeight - 0.5)*20;
-  document.getElementById('bg').style.transform=`translate(${x}px, ${y}px)`;
-});
+ brand:{ name:"ZESKA", version:"ZESKA" },
 
-/* Theme */
-function toggleTheme(){
-  document.body.classList.toggle('light');
+ nav:["Services","Projects","Team","Contact"],
+
+ quickAccess:["Apps","Products","Clients"],
+
+ shortcuts:[
+  {name:"Hack",link:"hack.html"}, 
+   {name:"AAC",link:"aac.html"},
+
+
+  {name:"Stock",link:"stock.html"},
+  {name:"Tech",link:"tech.html"},
+  {name:"Login",link:"login.html"},
+  {name:"Find",link:"find.html"},
+ ],
+
+ portfolio:[
+  {title:"Code Studio",desc:"Full‑Stack Dev • 2025",img:"https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80",link:"coding.html"},
+  {title:"Dev Workspace",desc:"Flutter + Backend • 2025",img:"https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?auto=format&fit=crop&w=800&q=80",link:"zeska-app.html"}
+ ],
+
+ directory:[
+  "intex.html","1.html","11.html","attendance.html","billing.html","certificate.html","portal.html","stock.html","main.py"
+ ],
+
+ team:[
+   {name:"Sibi",role:"Founder"},
+   {name:"Sibi",role:"Engineer"},
+   {name:"Sibi",role:"Designer"},
+   {name:"Sibi",role:"CEO"},
+   {name:"Sibi",role:"Admin"},
+   {name:"Sibi",role:"Hacker"},
+   {name:"Sibi",role:"all ? "}
+ ]
 }
 
-/* Directory Toggle */
-function toggleDirectory(){
-  const dir = document.getElementById('projectDirectory');
-  const title = document.querySelector('h3.section-title[onclick]');
-  if(dir.style.display === "none"){
-    dir.style.display = "block";
-    title.innerHTML = "Project Directory ▲";
-  } else {
-    dir.style.display = "none";
-    title.innerHTML = "Project Directory ▼";
-  }
+
+/* ===========================
+     RENDER ENGINE
+===========================*/
+const openItem = link => link && window.open(link, "_blank");
+
+function el(label,link=""){
+ return `<div class="item" onclick="openItem('${link}')">${label}</div>`;
 }
+
+function render(){
+ document.querySelector("#brand").innerText = `${ZESKA_DATA.brand.name} – ${ZESKA_DATA.brand.version}`;
+
+ document.querySelector("#nav").innerHTML = ZESKA_DATA.nav.map(i=>`<a href="#">${i}</a>`).join("");
+
+ document.querySelector("#quick").innerHTML = ZESKA_DATA.quickAccess.map(i=>el(i)).join("");
+
+ document.querySelector("#shortcuts").innerHTML = ZESKA_DATA.shortcuts.map(i=>el(i.name,i.link)).join("");
+
+ document.querySelector("#directory").innerHTML = ZESKA_DATA.directory.map(f=>el(f,f)).join("");
+
+ document.querySelector("#portfolio").innerHTML = ZESKA_DATA.portfolio.map(p=>`
+    <div class="card" onclick="openItem('${p.link}')">
+      <img loading="lazy" src="${p.img}" style="width:100%;border-radius:var(--radius);margin-bottom:12px;">
+      <h3>${p.title}</h3>
+      <p style="color:var(--dim)">${p.desc}</p>
+    </div>
+ `).join("");
+
+ document.querySelector("#team").innerHTML = ZESKA_DATA.team.map(t=>el(`${t.name}<br><small style='color:var(--dim)'>${t.role}</small>`)).join("");
+
+ document.querySelector("#dock").innerHTML = ZESKA_DATA.shortcuts.map(i=>`<div onclick="openItem('${i.link}')">${i.name}</div>`).join("");
+}
+
+
+/* ===========================
+   THEME SYSTEM + SAVE
+===========================*/
+if(localStorage.theme==="light") document.body.classList.add("light");
+document.querySelector("#theme").onclick=()=>{
+ document.body.classList.toggle("light");
+ localStorage.theme=document.body.classList.contains("light")?"light":"dark";
+};
+
+
+/* ===========================
+    Scroll Reveal
+===========================*/
+window.addEventListener("scroll",()=>{
+ document.querySelectorAll('.card').forEach(card=>{
+   if(card.getBoundingClientRect().top<window.innerHeight-50) card.classList.add("show")
+ })
+});
+
+
+/* INIT */
+render();
 </script>
 
 </body>
