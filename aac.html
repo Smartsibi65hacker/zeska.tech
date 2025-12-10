@@ -1,148 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AAC — Roll Numbers</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-1: #07060b;
-      --bg-2: #0d0a14;
-      --accent: #6366f1;
-      --glow: #a855f7;
-      --shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sibi – Project Showcase</title>
+
+<style>
+/* ---------- GLOBAL ---------- */
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Poppins", sans-serif;
+    background: #f2f2f7;
+    color: #1c1c1e;
+}
+
+/* ---------- HEADER ---------- */
+header {
+    text-align: center;
+    padding: 28px 10px;
+    background: #ffffffdd;
+    backdrop-filter: blur(20px);
+    color: #111;
+    font-size: 30px;
+    font-weight: 800;
+    border-bottom: 1px solid #e5e5ea;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* ---------- SEARCH BAR ---------- */
+.search-box {
+    width: 90%;
+    max-width: 500px;
+    margin: 18px auto;
+}
+.search-box input {
+    width: 100%;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1px solid #d1d1d6;
+    background: #fff;
+    font-size: 17px;
+}
+.search-box input:focus {
+    border-color: #007aff;
+    box-shadow: 0 0 0 4px #007aff30;
+    outline: none;
+}
+
+/* ---------- TITLES ---------- */
+.section-title {
+    text-align: center;
+    margin-top: 45px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #3a3a3c;
+}
+
+/* ---------- PROJECT CARDS ---------- */
+.container {
+    width: 94%;
+    max-width: 1200px;
+    margin: 20px auto 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+.card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid #e5e5ea;
+    box-shadow: 0 2px 8px #0001;
+    transition: 0.25s ease;
+    cursor: pointer;
+}
+.card:hover {
+    transform: scale(1.015);
+    box-shadow: 0 6px 16px #0002;
+}
+.card p {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* ---------- AAC PAGE ---------- */
+#aacPage {
+    display: none;
+    padding: 30px 10px 60px;
+}
+
+/* AAC heading */
+#aacPage h1 {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: #007aff;
+}
+
+/* Back button */
+.back-btn {
+    margin: 10px auto 25px;
+    display: block;
+    background: #007aff;
+    color: #fff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.back-btn:hover {
+    background: #0060d6;
+}
+
+/* AAC button grid */
+.dept-btn, .roll-btn {
+    padding: 14px;
+    background: #ffffff;
+    border: 1px solid #d1d1d6;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: 0.2s ease;
+}
+.dept-btn:hover, .roll-btn:hover {
+    background: #f1f1f5;
+}
+
+/* Grid containers */
+#aacDeptContainer, #aacRollContainer {
+    max-width: 900px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+/* ---------- RESPONSIVE FIXES FOR ALL DEVICES ---------- */
+@media (max-width: 480px) {
+    header { font-size: 22px; padding: 20px 8px; }
+    .section-title { font-size: 18px; margin-top: 30px; }
+    .container { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .card { padding: 16px; border-radius: 16px; }
+    .card p { font-size: 14px; }
+    #aacDeptContainer, #aacRollContainer {
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 10px;
+    }
+    .dept-btn, .roll-btn {
+        padding: 10px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+    .back-btn {
+        padding: 10px 16px;
+        font-size: 14px;
+        border-radius: 10px;
+    }
+}
+</style>
+
+<script>
+/* ---------- SEARCH PROJECTS ---------- */
+function searchProjects() {
+    let input = document.getElementById("search").value.toLowerCase();
+    let cards = document.getElementsByClassName("card");
+
+    for (let i = 0; i < cards.length; i++) {
+        let text = cards[i].innerText.toLowerCase();
+        cards[i].style.display = text.includes(input) ? "block" : "none";
+    }
+}
+
+/* ---------- PAGE SWITCHING ---------- */
+function openAAC() {
+    document.getElementById("mainPage").style.display = "none";
+    document.getElementById("aacPage").style.display = "block";
+}
+function goBack() {
+    document.getElementById("aacPage").style.display = "none";
+    document.getElementById("mainPage").style.display = "block";
+}
+function goToProjects() {
+    document.getElementById("aacPage").style.display = "none";
+    document.getElementById("mainPage").style.display = "block";
+}
+
+/* ---------- AAC ROLL NUMBER SYSTEM ---------- */
+const depts = {
+    "CSC": { prefix: "23CSC", start: 101, end: 160 },
+    "BCA": { prefix: "23BCA", start: 101, end: 140 },
+    "IT":  { prefix: "23ITM", start: 101, end: 150 },
+    "MCA": { prefix: "24MCA", start: 101, end: 130 }
+};
+
+const razorLink = "https://pages.razorpay.com/pl_RReYKatuRI8J8E/view";
+
+function loadDepartments() {
+    let c = document.getElementById("aacDeptContainer");
+    c.innerHTML = "";
+
+    Object.keys(depts).forEach(d => {
+        let btn = document.createElement("div");
+        btn.className = "dept-btn";
+        btn.innerText = d;
+        btn.onclick = () => loadRolls(d);
+        c.appendChild(btn);
+    });
+}
+
+function loadRolls(dept) {
+    let container = document.getElementById("aacRollContainer");
+    container.innerHTML = "";
+
+    let { prefix, start, end } = depts[dept];
+
+    for (let n = start; n <= end; n++) {
+        let div = document.createElement("div");
+        div.className = "roll-btn";
+        div.innerText = prefix + n;
+        div.onclick = () => window.open(razorLink, "_blank");
+        container.appendChild(div);
     }
 
-    * { box-sizing: border-box; }
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+}
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Poppins', sans-serif;
-      color: #fff;
-      background:
-        radial-gradient(900px 700px at 100% 0%, rgba(99, 102, 241, 0.1), transparent),
-        radial-gradient(900px 700px at 0% 100%, rgba(168, 85, 247, 0.1), transparent),
-        linear-gradient(180deg, var(--bg-1), var(--bg-2));
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      overflow-y: auto;
-      padding: 40px 10px;
-    }
-
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 30px;
-      color: var(--accent);
-      text-shadow: 0 0 15px var(--glow);
-      letter-spacing: 1px;
-    }
-
-    .button-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 20px;
-      width: 100%;
-      max-width: 900px;
-      justify-items: center;
-    }
-
-    .glow-btn {
-      position: relative;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      color: #fff;
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 14px 0;
-      width: 100%;
-      max-width: 140px;
-      border-radius: 12px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.3s ease;
-      box-shadow: inset 0 0 10px rgba(168, 85, 247, 0.2), var(--shadow);
-      overflow: hidden;
-    }
-
-    .glow-btn::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg, transparent, var(--glow), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .glow-btn:hover::before {
-      opacity: 1;
-      animation: lightMove 1.5s infinite linear;
-    }
-
-    @keyframes lightMove {
-      0% { background-position: -200px 0; }
-      100% { background-position: 200px 0; }
-    }
-
-    .glow-btn:hover {
-      transform: translateY(-4px) scale(1.05);
-      box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(168, 85, 247, 0.2);
-      border-color: var(--glow);
-    }
-
-    @keyframes floaty {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-4px); }
-    }
-
-    .glow-btn:nth-child(odd) {
-      animation: floaty 4s ease-in-out infinite;
-      animation-delay: calc(var(--i) * 0.05s);
-    }
-
-    .glow-btn:nth-child(even) {
-      animation: floaty 5s ease-in-out infinite;
-      animation-delay: calc(var(--i) * 0.05s);
-    }
-
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(168, 85, 247, 0.4);
-      border-radius: 4px;
-    }
-  </style>
+window.onload = function() {
+    loadDepartments();
+    renderProjects("webContainer",webProjects);
+    renderProjects("mobileContainer",mobileProjects);
+    renderProjects("aiContainer",aiProjects);
+};
+</script>
 </head>
+
 <body>
 
-  <h1>🎓 AAC Roll Numbers</h1>
-  <div class="button-container" id="btnContainer"></div>
+<div id="aacPage" style="display:block;">
+    <h1>AAC Roll Numbers</h1>
+    <h2 class="section-title">Departments</h2>
+    <div id="aacDeptContainer"></div>
+    <h2 class="section-title" style="margin-top:35px;">Roll Numbers</h2>
+    <div id="aacRollContainer"></div>
+    <button class="back-btn" onclick="goToProjects()">Continue to Project List →</button>
+</div>
 
-  <script>
-    const container = document.getElementById("btnContainer");
-    const paymentLink = "https://pages.razorpay.com/pl_RReYKatuRI8J8E/view";
+<!-- MAIN PROJECT PAGE -->
+<div id="mainPage" style="display:none;">
 
-    // Create 60 glowing buttons dynamically
-    for (let i = 1; i <= 60; i++) {
-      const rollNum = `23CSC${(100 + i).toString().padStart(3, "0").slice(-3)}`;
-      const btn = document.createElement("button");
-      btn.className = "glow-btn";
-      btn.style.setProperty("--i", i);
-      btn.textContent = rollNum;
+<header>Sibi – Mega Project Collection</header>
 
-      // Open Razorpay link on click
-      btn.addEventListener("click", () => {
-        window.open(paymentLink, "_blank");
-      });
+<div class="search-box">
+    <input id="search" onkeyup="searchProjects()" placeholder="Search projects...">
+</div>
 
-      container.appendChild(btn);
-    }
-  </script>
+<h2 class="section-title">✨ Web Projects </h2>
+<div class="container" id="webContainer"></div>
+
+<h2 class="section-title">📱 Mobile Apps </h2>
+<div class="container" id="mobileContainer"></div>
+
+<h2 class="section-title">🤖 AI / Software Tools </h2>
+<div class="container" id="aiContainer"></div>
+
+<!-- ADD YOUR SPECIAL AAC LINK -->
+<div class="card" onclick="openAAC()"><p>⚡ AAC Roll Numbers</p></div>
+
+</div>
+
+<script>
+const webProjects = [
+"1.html","10.html","11.html","12.html","2.html","2k.html","3.html","4.html","5.html","6.html","7.html","100.html","100p.html","111.html","aac.html","admin.html","attendance.html","br.html","br.htm","certificate.html","con.html","corn.html","corn1.html","corn2.html","corn3.html","dairy.html","dairy1.html","demo.html","demo1.html","find.html","horn.html","hotel_stock_app (web)","imara.html","imra.html","inten.html","invoice.html","late_slip_generator","lk.html","mac.html","message_encryptor (web)","mini-lottery.html","mp.html","mx.html","new.html","police.html","police1.html","police3.html","police4.html","portal.html","prank.html","preethi (web)","products.html","tech.html","tech1.html","tech2.html","tech3.html","tech4.html","tech5.html","tech6.html","temple_animated.html","temple_donation.html","view-bills.html"
+];
+
+const mobileProjects = [
+"hotel_stock_app","settle_court_attendance","login-app","voice_attendance_app","voice_attendance_fixed","voice-attendance-project","NA_STOCK","na_stock_clean","na_stock_fresh","omelike-app","driver_app","worker_schedule_app","milkfleet_backend","giofince","giofince_attendance","preethi (flutter)","personal_money_buddy","personal_money_buddy_new","view-bills (mobile)","mobile_transport_layer","my_app / myapp"
+];
+
+const aiProjects = [
+"gold_control_server.py","face_detect.py","ai-buddy","ai_call_buddy.py","helmet_live","image_encryptor","image_reccacode","message_encryptor","secret_encryptor","secret_encryptor_fixed","voice_sender","voice_server.py","bt_relay_demo","random-audio-app","tamil_gemini_terminal","zeska_terminal","zeska_lang","zeska_encriptor","zeska_encryptor_new","zeska_audio_encriptor","stroke_app.py","find_my_device_demo","geo_payroll","screen_capture.py","stock-logs analyzer","AI utilities & helpers"
+];
+
+function renderProjects(id,list){
+ let c=document.getElementById(id);
+ c.innerHTML="";
+ list.forEach((item,i)=>{
+   let div=document.createElement("div");
+   div.className="card";
+   div.innerHTML=`<p>${i+1}. ${item}</p>`;
+   c.appendChild(div);
+ });
+}
+</script>
 
 </body>
 </html>
