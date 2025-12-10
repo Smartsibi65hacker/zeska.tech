@@ -92,6 +92,10 @@ nav a:hover{color:var(--text)}
   transition:.25s;
 }
 .item:hover{transform:scale(1.05)}
+.glow{
+  box-shadow:0 0 18px rgba(0,180,255,0.8), 0 0 28px rgba(0,180,255,0.6);
+  border:1px solid rgba(0,180,255,0.9);
+}
 
 /* ==== DOCK ==== */
 .dock{
@@ -167,8 +171,7 @@ const ZESKA_DATA = {
 
  shortcuts:[
   {name:"Hack",link:"hack.html"}, 
-   {name:"AAC",link:"aac.html"},
-
+  {name:"📄 AAC",link:"aac.html", glow:true},
 
   {name:"Stock",link:"stock.html"},
   {name:"Tech",link:"tech.html"},
@@ -202,8 +205,8 @@ const ZESKA_DATA = {
 ===========================*/
 const openItem = link => link && window.open(link, "_blank");
 
-function el(label,link=""){
- return `<div class="item" onclick="openItem('${link}')">${label}</div>`;
+function el(label,link="",glow=false){
+  return `<div class="item ${glow?'glow':''}" onclick="openItem('${link}')">${label}</div>`;
 }
 
 function render(){
@@ -213,7 +216,7 @@ function render(){
 
  document.querySelector("#quick").innerHTML = ZESKA_DATA.quickAccess.map(i=>el(i)).join("");
 
- document.querySelector("#shortcuts").innerHTML = ZESKA_DATA.shortcuts.map(i=>el(i.name,i.link)).join("");
+ document.querySelector("#shortcuts").innerHTML = ZESKA_DATA.shortcuts.map(i=>el(i.name,i.link,i.glow)).join("");
 
  document.querySelector("#directory").innerHTML = ZESKA_DATA.directory.map(f=>el(f,f)).join("");
 
@@ -227,7 +230,7 @@ function render(){
 
  document.querySelector("#team").innerHTML = ZESKA_DATA.team.map(t=>el(`${t.name}<br><small style='color:var(--dim)'>${t.role}</small>`)).join("");
 
- document.querySelector("#dock").innerHTML = ZESKA_DATA.shortcuts.map(i=>`<div onclick="openItem('${i.link}')">${i.name}</div>`).join("");
+ document.querySelector("#dock").innerHTML = ZESKA_DATA.shortcuts.map(i=>`<div class="${i.glow?'glow':''}" onclick="openItem('${i.link}')">${i.name}</div>`).join("");
 }
 
 
