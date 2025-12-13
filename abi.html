@@ -1,1 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Abisheik A | 23BIT217 | Resume Builder</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PDF Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.4.1/html-docx.js"></script>
+<script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js"></script>
+
+<style>
+*{
+  box-sizing:border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+body{
+  margin:0;
+  background:#0f0f12;
+  -webkit-print-color-adjust: exact;
+  color:#fff;
+}
+.container{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  min-height:100vh;
+}
+.form{
+  padding:30px;
+  background:#15151a;
+  overflow-y:auto;
+}
+.form h2{
+  margin-bottom:15px;
+  font-size:26px;
+}
+.form input, .form textarea, .form select{
+  width:100%;
+  margin-bottom:12px;
+  padding:12px;
+  border-radius:8px;
+  border:none;
+  outline:none;
+  background:#222;
+  color:#fff;
+}
+.form button{
+  width:100%;
+  padding:14px;
+  background:linear-gradient(135deg,#00eaff,#6b8cff);
+  border:none;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+}
+.resume-wrap{
+  background:#ffffff;
+  color:#000;
+  padding:40px;
+  overflow: visible;
+}
+.resume{
+  max-width:800px;
+  margin:auto;
+}
+.name{
+  font-size:32px;
+  font-weight:800;
+}
+.role{
+  font-size:18px;
+  margin-bottom:8px;
+}
+.section{
+  margin-top:22px;
+}
+.section h3{
+  border-bottom:2px solid #000;
+  padding-bottom:4px;
+  font-size:16px;
+}
+ul{
+  padding-left:18px;
+}
+.download{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  background:#00eaff;
+  color:#000;
+  padding:14px 18px;
+  border-radius:50px;
+  font-weight:700;
+  cursor:pointer;
+}
+@media(max-width:900px){
+  .container{
+    grid-template-columns:1fr;
+  }
+}
+@media print {
+  body { background:#fff !important; }
+  .resume-wrap { overflow:visible !important; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="lockScreen" style="position:fixed;inset:0;background:#0f0f12;display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:#15151a;padding:30px;border-radius:16px;width:300px;text-align:center;">
+    <h2 style="margin-bottom:10px;">Enter MPIN</h2>
+    <input id="mpinInput" type="password" maxlength="4" placeholder="****"
+      style="width:100%;padding:12px;border-radius:8px;border:none;background:#222;color:#fff;text-align:center;font-size:20px;letter-spacing:6px;">
+    <button onclick="unlockApp()" style="margin-top:15px;width:100%;padding:12px;border:none;border-radius:8px;background:#00eaff;font-weight:700;">Unlock</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- FORM -->
+  <div class="form">
+    <h2>AI Resume Builder</h2>
+
+    <input id="name" placeholder="Full Name">
+    <input id="role" placeholder="Target Job Role (ex: Flutter Developer)">
+    <input id="email" placeholder="Email">
+    <input id="phone" placeholder="Phone">
+    <input id="location" placeholder="Location">
+    <input id="education" placeholder="Education (ex: B.Sc Computer Science)">
+    <input id="primarySkill" placeholder="Primary Skill (ex: Flutter)">
+    <input id="years" placeholder="Years of Experience (0 for Fresher)">
+
+    <button onclick="generate()">Generate AI Resume</button>
+  </div>
+
+  <!-- RESUME -->
+  <div class="resume-wrap">
+    <div class="resume" id="resume">
+
+      <div class="name" id="rName">Abisheik A</div>
+      <div class="role" id="rRole">23BIT217</div>
+      <div id="rContact">aabi85652@gmail.com | GOVERNMENT ARTS COLLEGE (AUTONOMOUS), Coimbatore - 18</div>
+
+      <div class="section">
+        <h3>Professional Summary</h3>
+        <p id="rSummary"></p>
+      </div>
+
+      <div class="section">
+        <h3>Skills</h3>
+        <ul id="rSkills"></ul>
+      </div>
+
+      <div class="section">
+        <h3>Experience</h3>
+        <ul id="rExp"></ul>
+      </div>
+
+      <div class="section">
+        <h3>Projects</h3>
+        <ul id="rProj"></ul>
+      </div>
+
+      <div class="section">
+        <h3>Education</h3>
+        <p id="rEdu"></p>
+      </div>
+
+      <div class="section">
+        <h3>Achievements</h3>
+        <ul id="rAch"></ul>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="download" onclick="downloadPDF()">Download PDF</div>
+
+<script>
+function unlockApp(){
+  const pin = document.getElementById("mpinInput").value;
+  if(pin === "5161"){
+    document.getElementById("lockScreen").style.display = "none";
+  } else {
+    alert("Wrong MPIN");
+  }
+}
+
+function generate(){
+  const name = nameEl.value;
+  const role = roleEl.value;
+  const email = emailEl.value;
+  const phone = phoneEl.value;
+  const location = locationEl.value;
+  const edu = document.getElementById("education").value;
+  const skill = document.getElementById("primarySkill").value;
+  const years = document.getElementById("years").value;
+
+  rName.innerText = name;
+  rRole.innerText = role;
+  rContact.innerText = `${email} | ${phone} | ${location}`;
+
+  rSummary.innerText =
+    years == 0
+    ? `Highly motivated ${role} with strong foundation in ${skill}. Passionate about learning, problem-solving, and building real-world applications using modern development practices.`
+    : `Experienced ${role} with ${years}+ years of expertise in ${skill}. Proven track record of delivering scalable, efficient, and high-quality solutions aligned with business goals.`;
+
+  rSkills.innerHTML = `
+    <li>${skill}</li>
+    <li>Problem Solving</li>
+    <li>Team Collaboration</li>
+    <li>Clean Code Practices</li>
+    <li>Version Control (Git)</li>
+  `;
+
+  rExp.innerHTML =
+    years == 0
+    ? `<li>Hands-on project experience and academic exposure to ${skill}.</li>`
+    : `<li>${years}+ years professional experience working with ${skill}, contributing to design, development, testing, and deployment.</li>`;
+
+  rProj.innerHTML = `
+    <li>Developed real-world applications using ${skill} with focus on performance and usability.</li>
+    <li>Implemented clean architecture and reusable components.</li>
+  `;
+
+  rEdu.innerText = edu;
+
+  rAch.innerHTML = `
+    <li>Built multiple projects demonstrating ${skill} expertise.</li>
+    <li>Quick learner with strong adaptability to new technologies.</li>
+  `;
+}
+
+function downloadPDF(){
+  const resume = document.getElementById("resume");
+
+  // Clone resume for clean PDF rendering
+  const clone = resume.cloneNode(true);
+
+  const wrapper = document.createElement("div");
+  wrapper.style.background = "#ffffff";
+  wrapper.style.color = "#000000";
+  wrapper.style.padding = "30px";
+  wrapper.style.width = "800px";
+  wrapper.appendChild(clone);
+
+  document.body.appendChild(wrapper);
+
+  const fileName = (document.getElementById("rName").innerText || "Resume")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_]/g, "");
+
+  const opt = {
+    filename: fileName + "_ATS_Resume.pdf",
+    margin: 0.5,
+    html2canvas: {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true
+    },
+    jsPDF: {
+      unit: "pt",
+      format: "a4",
+      orientation: "portrait"
+    }
+  };
+
+  html2pdf().set(opt).from(wrapper).save().then(() => {
+    document.body.removeChild(wrapper);
+  });
+}
+
+const nameEl = document.getElementById("name");
+const roleEl = document.getElementById("role");
+const emailEl = document.getElementById("email");
+const phoneEl = document.getElementById("phone");
+const locationEl = document.getElementById("location");
+const skillsEl = document.getElementById("skills");
+const experienceEl = document.getElementById("experience");
+const projectsEl = document.getElementById("projects");
+const educationEl = document.getElementById("education");
+const primarySkillEl = document.getElementById("primarySkill");
+const yearsEl = document.getElementById("years");
+
+function downloadDOCX(){
+  const resume = document.getElementById("resume");
+
+  if(!resume || !resume.innerText.trim()){
+    alert("Generate resume first");
+    return;
+  }
+
+  const name = document.getElementById("rName").innerText || "Resume";
+  const fileName = name.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_]/g,"");
+
+  const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+  const doc = new Document({
+    sections: [{
+      children: [
+        new Paragraph({
+          children: [new TextRun({ text: resume.querySelector("#rName").innerText, bold: true, size: 32 })]
+        }),
+        new Paragraph(resume.querySelector("#rRole").innerText),
+        new Paragraph(resume.querySelector("#rContact").innerText),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"PROFESSIONAL SUMMARY", bold:true })]}),
+        new Paragraph(resume.querySelector("#rSummary").innerText),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"SKILLS", bold:true })]}),
+        ...Array.from(resume.querySelectorAll("#rSkills li")).map(li =>
+          new Paragraph("• " + li.innerText)
+        ),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"EXPERIENCE", bold:true })]}),
+        ...Array.from(resume.querySelectorAll("#rExp li")).map(li =>
+          new Paragraph("• " + li.innerText)
+        ),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"PROJECTS", bold:true })]}),
+        ...Array.from(resume.querySelectorAll("#rProj li")).map(li =>
+          new Paragraph("• " + li.innerText)
+        ),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"EDUCATION", bold:true })]}),
+        new Paragraph(resume.querySelector("#rEdu").innerText),
+
+        new Paragraph(""),
+        new Paragraph({ children:[new TextRun({ text:"ACHIEVEMENTS", bold:true })]}),
+        ...Array.from(resume.querySelectorAll("#rAch li")).map(li =>
+          new Paragraph("• " + li.innerText)
+        ),
+      ]
+    }]
+  });
+
+  Packer.toBlob(doc).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName + "_Resume.docx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+}
+</script>
+
+</body>
+</html>
 
