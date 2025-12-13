@@ -239,40 +239,46 @@ function generate(){
 function downloadPDF(){
   const resume = document.getElementById("resume");
 
-  // Clone resume for clean PDF rendering
+  // Create visible overlay for mobile rendering
+  const overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.background = "#ffffff";
+  overlay.style.zIndex = "999999";
+  overlay.style.padding = "20px";
+
   const clone = resume.cloneNode(true);
+  clone.style.maxWidth = "794px"; // A4 width
+  clone.style.margin = "auto";
+  clone.style.color = "#000";
+  overlay.appendChild(clone);
 
-  const wrapper = document.createElement("div");
-  wrapper.style.background = "#ffffff";
-  wrapper.style.color = "#000000";
-  wrapper.style.padding = "30px";
-  wrapper.style.width = "800px";
-  wrapper.appendChild(clone);
-
-  document.body.appendChild(wrapper);
+  document.body.appendChild(overlay);
 
   const fileName = (document.getElementById("rName").innerText || "Resume")
     .replace(/\s+/g, "_")
     .replace(/[^a-zA-Z0-9_]/g, "");
 
-  const opt = {
-    filename: fileName + "_ATS_Resume.pdf",
-    margin: 0.5,
-    html2canvas: {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true
-    },
-    jsPDF: {
-      unit: "pt",
-      format: "a4",
-      orientation: "portrait"
-    }
-  };
-
-  html2pdf().set(opt).from(wrapper).save().then(() => {
-    document.body.removeChild(wrapper);
-  });
+  setTimeout(() => {
+    html2pdf().set({
+      filename: fileName + "_Resume.pdf",
+      margin: 0.4,
+      html2canvas: {
+        scale: 1.8,
+        backgroundColor: "#ffffff",
+        useCORS: true
+      },
+      jsPDF: {
+        unit: "pt",
+        format: "a4",
+        orientation: "portrait"
+      }
+    }).from(clone).save().then(() => {
+      document.body.removeChild(overlay);
+    });
+  }, 500); // delay is critical for mobile
 }
 
 const nameEl = document.getElementById("name");
@@ -359,4 +365,3 @@ function downloadDOCX(){
 
 </body>
 </html>
-
