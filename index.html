@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Birthday Poovimah  💙</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  height: 100vh;
+  background: linear-gradient(135deg, #0a1aff, #00c6ff);
+  color: #fff;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top);
+}
+
+.screen {
+  display: none;
+  min-height: 100svh;
+  width: 100%;
+  padding: 30px 20px;
+  text-align: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+.screen.active {
+  display: flex;
+}
+
+h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.btn {
+  margin-top: 25px;
+  padding: 14px 32px;
+  background: #ffffff;
+  color: #0a1aff;
+  border-radius: 40px;
+  text-decoration: none;
+  font-weight: 600;
+  border: none;
+  font-size: 1rem;
+  transition: 0.3s;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.heart {
+  position: fixed;
+  bottom: -20px;
+  color: #cce7ff;
+  font-size: 20px;
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-110vh) scale(1.4);
+    opacity: 0;
+  }
+}
+
+.footer {
+  position: absolute;
+  bottom: 20px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.midnight {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, #1e3cff, #000428);
+  display: none;
+  z-index: 999;
+  color: white;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 20px;
+  pointer-events: auto;
+}
+
+.midnight.active {
+  display: flex;
+}
+
+.midnight h1 {
+  font-size: 2.2rem;
+}
+
+.midnight p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.sparkle {
+  font-size: 2.5rem;
+  animation: sparkle 1s infinite alternate;
+}
+
+@keyframes sparkle {
+  from { transform: scale(1); opacity: 0.7; }
+  to { transform: scale(1.3); opacity: 1; }
+}
+
+.midnight.active ~ .screen {
+  display: none !important;
+}
+
+/* Poovimah text rain effect */
+.text-rain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 40;
+}
+
+.rain-item {
+  position: absolute;
+  top: -40px;
+  color: #cce7ff;
+  font-size: 1.4rem;
+  opacity: 0;
+  animation: rainFall linear forwards;
+  letter-spacing: 0.5px;
+}
+
+@keyframes rainFall {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+</style>
+
+</head>
+
+<body onclick="if(!document.getElementById('midnight').classList.contains('active')) nextScreen()">
+
+<!-- SCREEN 1 -->
+<div class="screen active">
+  <h1>Hey Poovimah 💙</h1>
+  <p id="timeWish"></p>
+  <button class="btn" onclick="nextScreen()">Tap pannundi </button>
+</div>
+
+<!-- SCREEN 2 -->
+<div class="screen">
+  <h1>Happy Birthday mah </h1>
+  <p>
+  Nee eppovum en Poovimah 💙
+  </p>
+  <button class="btn" onclick="nextScreen()">Next →</button>
+</div>
+
+<!-- SCREEN 3 -->
+<div class="screen">
+  <h1>Poovi ✨</h1>
+  <p>
+  Chellamey nee siricha pothum,<br>
+  antha siripu enaku pothum mah 💙
+  </p>
+  <button class="btn" onclick="nextScreen()">Next →</button>
+</div>
+
+<!-- SCREEN 4 -->
+<div class="screen">
+  <h1>One Promise 🤞</h1>
+  <p>
+    Thangamey…<br>
+    Care, respect, support — eppovum 💙
+  </p>
+  <button class="btn" onclick="nextScreen()">Next →</button>
+</div>
+
+<!-- SCREEN 5 -->
+<div class="screen">
+  <h1>Once Again 💙</h1>
+  <p>
+    Happy Birthday Poovimah 🎉<br>
+     Sibi 💙
+  </p>
+  <div class="footer">💙💙💙</div>
+</div>
+
+<div id="midnight" class="midnight">
+  <div class="sparkle">💙✨💙</div>
+  <h1>Happy Birthday Poovimah 🎂</h1>
+  <p>12:00 AM special surprise 💫<br>— Un Sibi 💙</p>
+  <button class="btn" onclick="closeMidnight()">Continue →</button>
+</div>
+
+<div class="text-rain" id="textRain"></div>
+
+<script>
+/* Screen navigation */
+let current = 0;
+const screens = document.querySelectorAll('.screen');
+
+function nextScreen() {
+  screens[current].classList.remove('active');
+  current++;
+  if (current >= screens.length) current = screens.length - 1;
+  screens[current].classList.add('active');
+}
+
+/* Time based wish */
+const hour = new Date().getHours();
+let msg = "Today is special 💫";
+
+if (hour < 12) msg = "Good Morning Poovimah ☀️ Chellamey today is yours 💙";
+else if (hour < 18) msg = " Poovimah 💙 Sirichitey iru 😊";
+else msg = " Poovimah 🌙 Thangamey  💙";
+
+document.getElementById("timeWish").innerText = msg;
+
+/* Floating blue hearts */
+let heartInterval = setInterval(createHeart, 300);
+
+function createHeart() {
+  if (midnightBox.classList.contains("active")) return;
+  const heart = document.createElement("div");
+  heart.className = "heart";
+  heart.innerText = "💙";
+  heart.style.left = Math.random() * 100 + "vw";
+  heart.style.animationDuration = (4 + Math.random() * 3) + "s";
+  document.body.appendChild(heart);
+
+  setTimeout(() => heart.remove(), 7000);
+}
+
+/* Midnight special trigger */
+const now = new Date();
+const midnightBox = document.getElementById("midnight");
+
+const BDAY_MONTH = 0;   // January = 0 (change if needed)
+const BDAY_DATE  = 14;  // set Poovimah birthday date
+
+if (
+  now.getMonth() === BDAY_MONTH &&
+  now.getDate() === BDAY_DATE &&
+  now.getHours() === 0 &&
+  now.getMinutes() === 0
+) {
+  midnightBox.classList.add("active");
+  screens.forEach(s => s.style.display = "none");
+}
+
+function closeMidnight() {
+  midnightBox.classList.remove("active");
+  screens.forEach(s => s.style.display = "");
+}
+
+/* Poovimah text rain logic */
+const textRain = document.getElementById("textRain");
+
+function createTextRain() {
+  if (midnightBox.classList.contains("active")) return;
+
+  const span = document.createElement("span");
+  span.className = "rain-item";
+  const words = [
+    "Poovimah 💙",
+    "Love you mah 💙",
+    "Love you thangamey 💙",
+    "Chellamey 💙",
+    "💙"
+  ];
+  span.innerText = words[Math.floor(Math.random() * words.length)];
+  span.style.left = Math.random() * 100 + "vw";
+  span.style.fontSize = (1.2 + Math.random() * 0.8) + "rem";
+  span.style.animationDuration = (2.5 + Math.random() * 1.5) + "s";
+
+  textRain.appendChild(span);
+
+  setTimeout(() => span.remove(), 8000);
+}
+
+/* start gentle rain */
+setInterval(createTextRain, 350);
+</script>
+
+<style>
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+</style>
+
+</body>
+</html>
