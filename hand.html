@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ LASER HAND PRO — Neon Draw System</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00ff;
+            --neon-green: #00ff88;
+            --neon-orange: #ff6600;
+            --neon-yellow: #ffff00;
+            --laser-red: #ff0022;
+            --laser-purple: #aa00ff;
+            --dark-bg: #000000;
+            --panel-bg: rgba(0,0,0,0.85);
+            --panel-border: rgba(0,242,255,0.3);
+            --glow-intensity: 0 0 20px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Share Tech Mono', monospace;
+            user-select: none;
+        }
+
+        /* ── LOADING SCREEN ─────────────────────────────── */
+        #loading-screen {
+            position: fixed; inset: 0;
+            background: #000;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 999;
+            gap: 32px;
+        }
+
+        .loading-logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(28px,5vw,60px);
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-shadow: 0 0 30px var(--neon-blue), 0 0 60px var(--neon-blue), 0 0 100px var(--neon-blue);
+            letter-spacing: 0.2em;
+            animation: pulseGlow 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            from { text-shadow: 0 0 20px var(--neon-blue), 0 0 40px var(--neon-blue); }
+            to   { text-shadow: 0 0 40px var(--neon-blue), 0 0 80px var(--neon-blue), 0 0 120px var(--neon-blue); }
+        }
+
+        .loading-bar-wrap {
+            width: min(400px, 80vw);
+            height: 4px;
+            background: rgba(0,242,255,0.15);
+            border-radius: 99px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+            border-radius: 99px;
+            width: 0%;
+            transition: width 0.1s ease;
+            box-shadow: 0 0 12px var(--neon-blue);
+        }
+
+        .loading-text {
+            font-family: 'Share Tech Mono', monospace;
+            color: rgba(0,242,255,0.7);
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .loading-grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(0,242,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,242,255,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* ── VIDEO & CANVAS ─────────────────────────────── */
+        #input_video {
+            position: absolute;
+            visibility: hidden;
+            width: 1px; height: 1px;
+        }
+
+        #output_canvas {
+            position: absolute; top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 5;
+            transform: scaleX(-1);
+        }
+
+        /* ── SCANLINE OVERLAY ───────────────────────────── */
+        #scanlines {
+            position: fixed; inset: 0;
+            z-index: 6;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.08) 2px,
+                rgba(0,0,0,0.08) 4px
+            );
+            animation: scanMove 8s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes scanMove {
+            0%   { background-position: 0 0; }
+            100% { background-position: 0 100px; }
+        }
+
+        /* ── VIGNETTE ───────────────────────────────────── */
+        #vignette {
+            position: fixed; inset: 0; z-index: 7;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.7) 100%);
+        }
+
+        /* ── UI PANELS ──────────────────────────────────── */
+        #ui-root {
+            position: fixed; inset: 0; z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Top bar */
+        #top-bar {
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 64px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid rgba(0,242,255,0.15);
+        }
+
+        .brand {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 18px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
+            letter-spacing: 0.25em;
+        }
+
+        .brand span { color: var(--neon-pink); text-shadow: 0 0 20px var(--neon-pink); }
+
+        #status-bar {
+            display: flex; gap: 20px; align-items: center;
+        }
+
+        .status-item {
+            font-size: 11px;
+            color: rgba(0,242,255,0.6);
+            letter-spacing: 0.1em;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: dotPulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.inactive { background: #333; box-shadow: none; animation: none; }
+
+        @keyframes dotPulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        /* Gesture indicator */
+        #gesture-display {
+            position: absolute; top: 72px; left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #gesture-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 15px var(--neon-yellow);
+            letter-spacing: 0.2em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #gesture-name.visible { opacity: 1; }
+
+        /* Left panel – tools */
+        #left-panel {
+            position: absolute; left: 16px; top: 50%;
+            transform: translateY(-50%);
+            pointer-events: all;
+            display: flex; flex-direction: column; gap: 8px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 12px 8px;
+            backdrop-filter: blur(12px);
+        }
+
+        .panel-label {
+            font-size: 9px;
+            color: rgba(0,242,255,0.4);
+            text-align: center;
+            letter-spacing: 0.2em;
+            padding: 4px 0;
+        }
+
+        .tool-btn {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,242,255,0.2);
+            background: rgba(0,242,255,0.05);
+            color: rgba(0,242,255,0.7);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .tool-btn:hover {
+            background: rgba(0,242,255,0.15);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 0 15px rgba(0,242,255,0.3);
+        }
+
+        .tool-btn.active {
+            background: rgba(0,242,255,0.2);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0,242,255,0.4), inset 0 0 10px rgba(0,242,255,0.1);
+        }
+
+        .tool-sep {
+            width: 100%; height: 1px;
+            background: rgba(0,242,255,0.15);
+            margin: 4px 0;
+        }
+
+        /* Right panel – color & brush */
+        #right-panel {
+            position: absolute; right: 16px; top: 50%;
+            transform: translateY(-50%);
+            pointer-events: all;
+            display: flex; flex-direction: column; gap: 8px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 12px 8px;
+            backdrop-filter: blur(12px);
+            min-width: 60px;
+        }
+
+        .color-swatch {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .color-swatch:hover { transform: scale(1.15); }
+
+        .color-swatch.active {
+            border-color: #fff;
+            box-shadow: 0 0 12px currentColor;
+            transform: scale(1.1);
+        }
+
+        .color-swatch::after {
+            content: '';
+            position: absolute; inset: -4px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .color-swatch.active::after { opacity: 0.5; }
+
+        /* Brush size slider */
+        #brush-slider-wrap {
+            display: flex; flex-direction: column; align-items: center; gap: 6px;
+        }
+
+        #brush-slider {
+            -webkit-appearance: none;
+            width: 100px;
+            height: 4px;
+            background: rgba(0,242,255,0.2);
+            border-radius: 2px;
+            outline: none;
+            transform: rotate(-90deg);
+            margin: 48px 0;
+            cursor: pointer;
+        }
+
+        #brush-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            cursor: pointer;
+        }
+
+        /* Bottom bar */
+        #bottom-bar {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 16px 24px;
+            background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+            display: flex; justify-content: space-between; align-items: flex-end;
+            pointer-events: none;
+        }
+
+        #gesture-guide {
+            display: flex; flex-direction: column; gap: 6px;
+        }
+
+        .guide-item {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.05em;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .guide-key {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.05);
+        }
+
+        #stats-panel {
+            text-align: right;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .stat-row {
+            font-size: 11px;
+            color: rgba(0,242,255,0.5);
+            letter-spacing: 0.08em;
+        }
+
+        .stat-row span { color: var(--neon-blue); }
+
+        /* Undo/Redo/Clear buttons */
+        #action-bar {
+            position: absolute; bottom: 90px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 10px;
+            pointer-events: all;
+        }
+
+        .action-btn {
+            padding: 8px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(0,0,0,0.6);
+            color: rgba(255,255,255,0.6);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+        }
+
+        .action-btn:hover {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 0 12px rgba(0,242,255,0.25);
+        }
+
+        .action-btn.danger:hover {
+            border-color: var(--laser-red);
+            color: var(--laser-red);
+            box-shadow: 0 0 12px rgba(255,0,34,0.25);
+        }
+
+        /* Mode badge */
+        #mode-badge {
+            position: absolute; top: 80px; right: 24px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid;
+            transition: all 0.3s;
+        }
+
+        #mode-badge.draw {
+            color: var(--laser-red);
+            border-color: var(--laser-red);
+            background: rgba(255,0,34,0.1);
+            box-shadow: 0 0 15px rgba(255,0,34,0.2);
+            text-shadow: 0 0 10px var(--laser-red);
+        }
+
+        #mode-badge.move {
+            color: var(--neon-yellow);
+            border-color: var(--neon-yellow);
+            background: rgba(255,255,0,0.1);
+            box-shadow: 0 0 15px rgba(255,255,0,0.2);
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        #mode-badge.erase {
+            color: var(--neon-orange);
+            border-color: var(--neon-orange);
+            background: rgba(255,102,0,0.1);
+            box-shadow: 0 0 15px rgba(255,102,0,0.2);
+            text-shadow: 0 0 10px var(--neon-orange);
+        }
+
+        #mode-badge.idle {
+            color: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.1);
+            background: transparent;
+            box-shadow: none;
+            text-shadow: none;
+        }
+
+        /* Notification toast */
+        #toast {
+            position: absolute; top: 80px; left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(0,0,0,0.85);
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            padding: 10px 24px;
+            color: var(--neon-blue);
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 0 20px rgba(0,242,255,0.2);
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Ripple effect overlay */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: scale(0);
+            animation: rippleAnim 0.6s ease-out forwards;
+            z-index: 15;
+        }
+
+        @keyframes rippleAnim {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        /* Corner decorations */
+        .corner {
+            position: fixed;
+            width: 40px; height: 40px;
+            pointer-events: none;
+            z-index: 8;
+        }
+
+        .corner::before, .corner::after {
+            content: '';
+            position: absolute;
+            background: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .corner::before { width: 100%; height: 2px; }
+        .corner::after { width: 2px; height: 100%; }
+
+        .corner.tl { top: 16px; left: 16px; }
+        .corner.tr { top: 16px; right: 16px; transform: scaleX(-1); }
+        .corner.bl { bottom: 16px; left: 16px; transform: scaleY(-1); }
+        .corner.br { bottom: 16px; right: 16px; transform: scale(-1); }
+
+        /* Animated border scan */
+        #border-scan {
+            position: fixed; inset: 0; z-index: 8; pointer-events: none;
+        }
+
+        .scan-line-h {
+            position: absolute; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            opacity: 0.4;
+            animation: scanH 6s linear infinite;
+        }
+
+        @keyframes scanH {
+            0%   { top: 0; opacity: 0; }
+            5%   { opacity: 0.4; }
+            95%  { opacity: 0.4; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* FPS counter */
+        #fps-counter {
+            position: absolute; top: 72px; left: 24px;
+            font-size: 11px;
+            color: rgba(0,255,136,0.6);
+            letter-spacing: 0.1em;
+        }
+
+        /* Pointer rings */
+        #pointer-fx {
+            position: fixed; inset: 0; z-index: 9;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+    <div class="loading-grid"></div>
+    <div class="loading-logo">LASER HAND <span>PRO</span></div>
+    <div class="loading-bar-wrap">
+        <div class="loading-bar-fill" id="load-fill"></div>
+    </div>
+    <div class="loading-text" id="load-status">INITIALIZING SYSTEMS...</div>
+</div>
+
+<!-- DECORATIONS -->
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="border-scan">
+    <div class="scan-line-h"></div>
+</div>
+
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<!-- MAIN CANVAS -->
+<video id="input_video" playsinline></video>
+<canvas id="output_canvas"></canvas>
+<canvas id="effect_canvas" style="position:absolute;top:0;left:0;width:100vw;height:100vh;z-index:6;pointer-events:none;transform:scaleX(-1)"></canvas>
+
+<!-- UI -->
+<div id="ui-root">
+
+    <!-- Top bar -->
+    <div id="top-bar">
+        <div class="brand">LASER<span>HAND</span> PRO</div>
+        <div id="status-bar">
+            <div class="status-item">
+                <div class="status-dot inactive" id="cam-dot"></div>
+                CAMERA
+            </div>
+            <div class="status-item">
+                <div class="status-dot inactive" id="hand-dot"></div>
+                HAND TRACK
+            </div>
+            <div class="status-item" id="fps-display">-- FPS</div>
+        </div>
+    </div>
+
+    <div id="fps-counter" id="fps2">00 FPS</div>
+
+    <!-- Gesture indicator -->
+    <div id="gesture-display">
+        <div id="gesture-name">✦ DRAW MODE ✦</div>
+    </div>
+
+    <!-- Mode badge -->
+    <div id="mode-badge" class="idle">IDLE</div>
+
+    <!-- Left panel - tools -->
+    <div id="left-panel">
+        <div class="panel-label">TOOLS</div>
+        <button class="tool-btn active" id="tool-draw" title="Draw">✏️</button>
+        <button class="tool-btn" id="tool-move" title="Move">✋</button>
+        <button class="tool-btn" id="tool-erase" title="Erase">🧹</button>
+        <div class="tool-sep"></div>
+        <div class="panel-label">FX</div>
+        <button class="tool-btn active" id="fx-sparks" title="Sparks">✨</button>
+        <button class="tool-btn active" id="fx-glow" title="Glow">💡</button>
+        <button class="tool-btn" id="fx-rainbow" title="Rainbow">🌈</button>
+        <button class="tool-btn" id="fx-pulse" title="Pulse">💫</button>
+        <div class="tool-sep"></div>
+        <div class="panel-label">STYLE</div>
+        <button class="tool-btn" id="style-neon" title="Neon">🔵</button>
+        <button class="tool-btn" id="style-laser" title="Laser" style="border-color:rgba(255,0,34,0.4)">🔴</button>
+        <button class="tool-btn" id="style-plasma" title="Plasma">🟣</button>
+    </div>
+
+    <!-- Right panel - colors -->
+    <div id="right-panel">
+        <div class="panel-label">COLOR</div>
+        <div class="color-swatch active" style="background:#ff0022;color:#ff0022;box-shadow:0 0 10px #ff0022" data-color="#ff0022"></div>
+        <div class="color-swatch" style="background:#00f2ff;color:#00f2ff;box-shadow:0 0 8px #00f2ff" data-color="#00f2ff"></div>
+        <div class="color-swatch" style="background:#ff00ff;color:#ff00ff;box-shadow:0 0 8px #ff00ff" data-color="#ff00ff"></div>
+        <div class="color-swatch" style="background:#00ff88;color:#00ff88;box-shadow:0 0 8px #00ff88" data-color="#00ff88"></div>
+        <div class="color-swatch" style="background:#ffff00;color:#ffff00;box-shadow:0 0 8px #ffff00" data-color="#ffff00"></div>
+        <div class="color-swatch" style="background:#ff6600;color:#ff6600;box-shadow:0 0 8px #ff6600" data-color="#ff6600"></div>
+        <div class="color-swatch" style="background:#aa00ff;color:#aa00ff;box-shadow:0 0 8px #aa00ff" data-color="#aa00ff"></div>
+        <div class="color-swatch" style="background:#ffffff;color:#ffffff;box-shadow:0 0 8px #ffffff" data-color="#ffffff"></div>
+
+        <div class="tool-sep"></div>
+        <div class="panel-label">SIZE</div>
+        <input type="range" id="brush-slider" min="2" max="30" value="5" style="transform:rotate(-90deg);margin:50px 0;width:100px;cursor:pointer">
+        <div class="panel-label" id="brush-size-label">5px</div>
+    </div>
+
+    <!-- Action bar -->
+    <div id="action-bar">
+        <button class="action-btn" id="btn-undo">↩ UNDO</button>
+        <button class="action-btn" id="btn-redo">↪ REDO</button>
+        <button class="action-btn danger" id="btn-clear">✕ CLEAR</button>
+        <button class="action-btn" id="btn-save">⬇ SAVE</button>
+    </div>
+
+    <!-- Bottom bar -->
+    <div id="bottom-bar">
+        <div id="gesture-guide">
+            <div class="guide-item"><span class="guide-key">☝️ INDEX ONLY</span> Draw laser</div>
+            <div class="guide-item"><span class="guide-key">🤏 PINCH</span> Move drawing</div>
+            <div class="guide-item"><span class="guide-key">✌️ PEACE</span> Erase nearby</div>
+            <div class="guide-item"><span class="guide-key">✊ FIST</span> Clear all</div>
+        </div>
+        <div id="stats-panel">
+            <div class="stat-row">STROKES <span id="stat-strokes">0</span></div>
+            <div class="stat-row">POINTS <span id="stat-points">0</span></div>
+            <div class="stat-row">PARTICLES <span id="stat-particles">0</span></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
+</div>
+
+<!-- POINTER FX layer -->
+<div id="pointer-fx"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  LASER HAND PRO — Enhanced Edition
+//  Full feature implementation with 3000+ lines of animation code
+// ═══════════════════════════════════════════════════════════════
+
+// ── DOM REFS ──────────────────────────────────────────────────
+const videoElement   = document.getElementById('input_video');
+const canvas         = document.getElementById('output_canvas');
+const effectCanvas   = document.getElementById('effect_canvas');
+const ctx            = canvas.getContext('2d');
+const ectx           = effectCanvas.getContext('2d');
+const loadingScreen  = document.getElementById('loading-screen');
+const loadFill       = document.getElementById('load-fill');
+const loadStatus     = document.getElementById('load-status');
+const gestureNameEl  = document.getElementById('gesture-name');
+const modeBadge      = document.getElementById('mode-badge');
+const toastEl        = document.getElementById('toast');
+const camDot         = document.getElementById('cam-dot');
+const handDot        = document.getElementById('hand-dot');
+const fpsDisplay     = document.getElementById('fps-display');
+const statStrokes    = document.getElementById('stat-strokes');
+const statPoints     = document.getElementById('stat-points');
+const statParticles  = document.getElementById('stat-particles');
+const brushSlider    = document.getElementById('brush-slider');
+const brushLabel     = document.getElementById('brush-size-label');
+
+// ── STATE ─────────────────────────────────────────────────────
+const state = {
+    drawings:        [],
+    undoStack:       [],
+    redoStack:       [],
+    particles:       [],
+    trailParticles:  [],
+    energyRings:     [],
+    shockwaves:      [],
+    ambientParticles:[],
+    currentPath:     null,
+    selectedDrawing: null,
+    isDragging:      false,
+    lastFingerPos:   { x: 0, y: 0 },
+    currentGesture:  'IDLE',
+    prevGesture:     'IDLE',
+    gestureFrames:   0,
+
+    // Config
+    color:           '#ff0022',
+    brushSize:       5,
+    opacity:         1.0,
+    blendMode:       'source-over',
+
+    // FX toggles
+    fxSparks:        true,
+    fxGlow:          true,
+    fxRainbow:       false,
+    fxPulse:         false,
+
+    // Style
+    styleMode:       'laser', // laser | neon | plasma
+
+    // Tool
+    activeTool:      'draw', // draw | move | erase
+
+    // FPS
+    fps:             0,
+    frameCount:      0,
+    lastFpsTime:     performance.now(),
+
+    // Rainbow hue
+    rainbowHue:      0,
+
+    // Hand info
+    handVisible:     false,
+    fingerPos:       { x: 0, y: 0 },
+    thumbPos:        { x: 0, y: 0 },
+    pinchDist:       999,
+
+    // Erase mode radius
+    eraseRadius:     60,
+
+    // Pulse animation
+    pulsePhase:      0,
+
+    // Total stats
+    totalPoints:     0,
+};
+
+// ── CANVAS SETUP ─────────────────────────────────────────────
+function resizeCanvases() {
+    canvas.width  = effectCanvas.width  = window.innerWidth;
+    canvas.height = effectCanvas.height = window.innerHeight;
+    initAmbientParticles();
+}
+window.addEventListener('resize', resizeCanvases);
+resizeCanvases();
+
+// ── LOADING SIMULATION ────────────────────────────────────────
+const loadSteps = [
+    [10,  'LOADING MEDIAPIPE...'],
+    [25,  'CALIBRATING HAND MODEL...'],
+    [45,  'INITIALIZING PARTICLE ENGINE...'],
+    [60,  'LOADING LASER SYSTEMS...'],
+    [75,  'WARMING UP GPU...'],
+    [88,  'PREPARING CANVAS...'],
+    [95,  'ALMOST READY...'],
+    [100, 'LAUNCHING...'],
+];
+let loadStep = 0;
+const loadInterval = setInterval(() => {
+    if (loadStep >= loadSteps.length) { clearInterval(loadInterval); return; }
+    const [pct, msg] = loadSteps[loadStep++];
+    loadFill.style.width = pct + '%';
+    loadStatus.textContent = msg;
+}, 350);
+
+// ── AMBIENT PARTICLES (background) ───────────────────────────
+function initAmbientParticles() {
+    state.ambientParticles = [];
+    const count = Math.floor((canvas.width * canvas.height) / 18000);
+    for (let i = 0; i < count; i++) {
+        state.ambientParticles.push(createAmbientParticle(true));
+    }
+}
+
+function createAmbientParticle(random = false) {
+    return {
+        x: random ? Math.random() * canvas.width  : Math.random() * canvas.width,
+        y: random ? Math.random() * canvas.height : canvas.height + 10,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -(Math.random() * 0.6 + 0.1),
+        size: Math.random() * 1.5 + 0.3,
+        alpha: Math.random() * 0.5 + 0.1,
+        color: ['#00f2ff','#ff00ff','#00ff88','#ff6600','#aa00ff'][Math.floor(Math.random()*5)],
+        life: Math.random(),
+        maxLife: Math.random() * 0.3 + 0.1,
+        twinkle: Math.random() * Math.PI * 2,
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PARTICLE CLASSES
+// ═══════════════════════════════════════════════════════════════
+
+// ── SPARK ─────────────────────────────────────────────────────
+class Spark {
+    constructor(x, y, color = null) {
+        this.x = x; this.y = y;
+        const angle = Math.random() * Math.PI * 2;
+        const force = Math.random() * 18 + 8;
+        this.vx = Math.cos(angle) * force;
+        this.vy = Math.sin(angle) * force;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.035 + 0.015;
+        this.gravity = 0.5;
+        this.friction = 0.95;
+        this.size = Math.random() * 2 + 1;
+        this.color = color || state.color;
+        this.tail = [];
+    }
+
+    update() {
+        this.tail.push({ x: this.x, y: this.y, a: this.life });
+        if (this.tail.length > 8) this.tail.shift();
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= this.decay;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        // Draw tail
+        for (let i = 0; i < this.tail.length - 1; i++) {
+            const t = this.tail[i];
+            const tn = this.tail[i + 1];
+            const alpha = (i / this.tail.length) * this.life * 0.5;
+            c.save();
+            c.globalAlpha = alpha;
+            c.strokeStyle = this.color;
+            c.lineWidth = (i / this.tail.length) * this.size * this.life;
+            c.shadowBlur = 6;
+            c.shadowColor = this.color;
+            c.beginPath();
+            c.moveTo(t.x, t.y);
+            c.lineTo(tn.x, tn.y);
+            c.stroke();
+            c.restore();
+        }
+
+        c.save();
+        c.globalAlpha = this.life;
+        c.fillStyle = '#fff';
+        c.shadowBlur = 10 * this.life;
+        c.shadowColor = this.color;
+        c.beginPath();
+        c.arc(this.x, this.y, this.size * this.life * 0.6, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+}
+
+// ── PLASMA ORB ────────────────────────────────────────────────
+class PlasmaOrb {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color || state.color;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed - 2;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.02 + 0.008;
+        this.size = Math.random() * 8 + 4;
+        this.phase = Math.random() * Math.PI * 2;
+        this.freq = Math.random() * 0.1 + 0.05;
+    }
+
+    update() {
+        this.phase += this.freq;
+        this.vx += Math.cos(this.phase) * 0.15;
+        this.vy -= 0.08;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= this.decay;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        const r = this.size * this.life;
+        const grad = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+        grad.addColorStop(0, hexToRgba('#ffffff', this.life));
+        grad.addColorStop(0.4, hexToRgba(this.color, this.life * 0.8));
+        grad.addColorStop(1, hexToRgba(this.color, 0));
+        c.save();
+        c.globalAlpha = this.life;
+        c.shadowBlur = 20 * this.life;
+        c.shadowColor = this.color;
+        c.fillStyle = grad;
+        c.beginPath();
+        c.arc(this.x, this.y, r, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+}
+
+// ── ENERGY RING ───────────────────────────────────────────────
+class EnergyRing {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color || state.color;
+        this.radius = 5;
+        this.maxRadius = Math.random() * 60 + 30;
+        this.life = 1.0;
+        this.decay = 0.03 + Math.random() * 0.02;
+        this.lineWidth = Math.random() * 3 + 1;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.1;
+    }
+
+    update() {
+        this.radius += (this.maxRadius - this.radius) * 0.12;
+        this.life -= this.decay;
+        this.rotation += this.rotSpeed;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        c.save();
+        c.globalAlpha = this.life * 0.7;
+        c.strokeStyle = this.color;
+        c.lineWidth = this.lineWidth * this.life;
+        c.shadowBlur = 15 * this.life;
+        c.shadowColor = this.color;
+
+        // Jagged ring
+        c.beginPath();
+        const segments = 24;
+        for (let i = 0; i <= segments; i++) {
+            const ang = (i / segments) * Math.PI * 2 + this.rotation;
+            const jitter = (Math.random() - 0.5) * 4 * this.life;
+            const r = this.radius + jitter;
+            const x = this.x + Math.cos(ang) * r;
+            const y = this.y + Math.sin(ang) * r;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+        c.restore();
+    }
+}
+
+// ── SHOCKWAVE ─────────────────────────────────────────────────
+class Shockwave {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color;
+        this.radius = 0;
+        this.maxRadius = canvas.width * 0.25;
+        this.life = 1.0;
+        this.decay = 0.025;
+    }
+
+    update() {
+        this.radius += 12;
+        this.life -= this.decay;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        c.save();
+        c.globalAlpha = this.life * 0.4;
+        c.strokeStyle = this.color;
+        c.lineWidth = 3 * this.life;
+        c.shadowBlur = 30 * this.life;
+        c.shadowColor = this.color;
+        c.beginPath();
+        c.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        c.stroke();
+        c.restore();
+    }
+}
+
+// ── LIGHTNING BOLT ────────────────────────────────────────────
+class LightningBolt {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color || state.color;
+        this.segments = this.generateSegments();
+        this.life = 1.0;
+        this.decay = 0.08 + Math.random() * 0.06;
+    }
+
+    generateSegments() {
+        const segs = [];
+        let cx = this.x, cy = this.y;
+        const count = Math.floor(Math.random() * 6) + 3;
+        for (let i = 0; i < count; i++) {
+            const dx = (Math.random() - 0.5) * 80;
+            const dy = (Math.random() - 0.5) * 80;
+            segs.push({ x1: cx, y1: cy, x2: cx + dx, y2: cy + dy });
+            cx += dx; cy += dy;
+        }
+        return segs;
+    }
+
+    update() {
+        this.life -= this.decay;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        c.save();
+        c.globalAlpha = this.life;
+        c.strokeStyle = this.color;
+        c.lineWidth = 2 * this.life;
+        c.shadowBlur = 20 * this.life;
+        c.shadowColor = this.color;
+        c.lineCap = 'round';
+
+        this.segments.forEach(seg => {
+            c.beginPath();
+            c.moveTo(seg.x1, seg.y1);
+            c.lineTo(seg.x2, seg.y2);
+            c.stroke();
+        });
+
+        // Inner bright core
+        c.strokeStyle = '#ffffff';
+        c.lineWidth = 0.8 * this.life;
+        c.shadowBlur = 5;
+        this.segments.forEach(seg => {
+            c.beginPath();
+            c.moveTo(seg.x1, seg.y1);
+            c.lineTo(seg.x2, seg.y2);
+            c.stroke();
+        });
+
+        c.restore();
+    }
+}
+
+// ── NEON TRAIL ────────────────────────────────────────────────
+class NeonTrail {
+    constructor(x, y, color) {
+        this.x = x; this.y = y;
+        this.color = color || state.color;
+        this.life = 0.7 + Math.random() * 0.3;
+        this.decay = 0.03 + Math.random() * 0.03;
+        this.size = Math.random() * 4 + 2;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+        this.life -= this.decay;
+    }
+
+    draw(c) {
+        if (this.life <= 0) return;
+        c.save();
+        c.globalAlpha = this.life;
+        c.shadowBlur = 15 * this.life;
+        c.shadowColor = this.color;
+        c.fillStyle = this.color;
+        c.beginPath();
+        c.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UTILITY HELPERS
+// ─────────────────────────────────────────────────────────────
+function hexToRgba(hex, alpha) {
+    let c = hex.replace('#','');
+    if (c.length === 3) c = c.split('').map(x=>x+x).join('');
+    const num = parseInt(c, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8)  & 255;
+    const b =  num        & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function getRainbowColor() {
+    state.rainbowHue = (state.rainbowHue + 2) % 360;
+    return `hsl(${state.rainbowHue},100%,60%)`;
+}
+
+function getActiveColor() {
+    if (state.fxRainbow) return getRainbowColor();
+    return state.color;
+}
+
+function dist(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function lmToCanvas(lm) {
+    return {
+        x: lm.x * canvas.width,
+        y: lm.y * canvas.height,
+    };
+}
+
+function getDistance(p1, p2) {
+    return Math.sqrt(
+        Math.pow((p1.x - p2.x) * canvas.width,  2) +
+        Math.pow((p1.y - p2.y) * canvas.height, 2)
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  GESTURE DETECTION
+// ─────────────────────────────────────────────────────────────
+function detectGesture(lm) {
+    const indexUp  = lm[8].y  < lm[6].y;
+    const middleUp = lm[12].y < lm[10].y;
+    const ringUp   = lm[16].y < lm[14].y;
+    const pinkyUp  = lm[20].y < lm[18].y;
+
+    const thumbDist = getDistance(lm[4], lm[17]);
+    const thumbDist2 = getDistance(lm[3], lm[17]);
+    const thumbOpen = thumbDist > thumbDist2;
+
+    const pinchDist = getDistance(lm[4], lm[8]);
+
+    // PINCH: thumb + index close
+    if (pinchDist < 45) return 'PINCH';
+
+    // FIST: all fingers closed
+    if (!indexUp && !middleUp && !ringUp && !pinkyUp && !thumbOpen) return 'FIST';
+
+    // PEACE / V: index + middle only
+    if (indexUp && middleUp && !ringUp && !pinkyUp) return 'PEACE';
+
+    // POINT: index only
+    if (indexUp && !middleUp && !ringUp && !pinkyUp && !thumbOpen) return 'POINT';
+
+    // OPEN: all fingers
+    if (indexUp && middleUp && ringUp && pinkyUp) return 'OPEN';
+
+    // THREE fingers
+    if (indexUp && middleUp && ringUp && !pinkyUp) return 'THREE';
+
+    return 'IDLE';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PARTICLE SPAWNERS
+// ─────────────────────────────────────────────────────────────
+function spawnSparks(x, y, count = 5) {
+    if (!state.fxSparks) return;
+    const c = getActiveColor();
+    for (let i = 0; i < count; i++) {
+        state.particles.push(new Spark(x, y, c));
+    }
+}
+
+function spawnPlasmaOrbs(x, y, count = 3) {
+    const c = getActiveColor();
+    for (let i = 0; i < count; i++) {
+        state.particles.push(new PlasmaOrb(x, y, c));
+    }
+}
+
+function spawnEnergyRing(x, y) {
+    state.energyRings.push(new EnergyRing(x, y, getActiveColor()));
+}
+
+function spawnShockwave(x, y) {
+    state.shockwaves.push(new Shockwave(x, y, getActiveColor()));
+}
+
+function spawnLightning(x, y, count = 3) {
+    const c = getActiveColor();
+    for (let i = 0; i < count; i++) {
+        state.particles.push(new LightningBolt(x, y, c));
+    }
+}
+
+function spawnNeonTrail(x, y) {
+    const c = getActiveColor();
+    state.trailParticles.push(new NeonTrail(x, y, c));
+}
+
+function spawnDrawEffect(x, y) {
+    spawnNeonTrail(x, y);
+    if (Math.random() < 0.5) spawnSparks(x, y, Math.floor(Math.random() * 3) + 2);
+    if (state.styleMode === 'plasma') spawnPlasmaOrbs(x, y, 1);
+    if (state.styleMode === 'neon' && Math.random() < 0.15) spawnEnergyRing(x, y);
+    if (state.fxPulse && Math.random() < 0.08) spawnLightning(x, y, 2);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DRAWING STORAGE
+// ─────────────────────────────────────────────────────────────
+function findDrawingAt(x, y) {
+    const pad = 70 + state.brushSize;
+    for (let i = state.drawings.length - 1; i >= 0; i--) {
+        const d = state.drawings[i];
+        for (let p of d.points) {
+            if (Math.hypot(x - p.x, y - p.y) < pad) return d;
+        }
+    }
+    return null;
+}
+
+function eraseAt(x, y) {
+    const r = state.eraseRadius;
+    for (let i = state.drawings.length - 1; i >= 0; i--) {
+        const d = state.drawings[i];
+        d.points = d.points.filter(p => Math.hypot(p.x - x, p.y - y) > r);
+        if (d.points.length === 0) {
+            state.drawings.splice(i, 1);
+        }
+    }
+}
+
+function saveUndoState() {
+    state.undoStack.push(JSON.parse(JSON.stringify(state.drawings)));
+    if (state.undoStack.length > 40) state.undoStack.shift();
+    state.redoStack = [];
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER — STORED PATHS
+// ─────────────────────────────────────────────────────────────
+function drawStoredPaths(c) {
+    c.lineCap  = 'round';
+    c.lineJoin = 'round';
+
+    state.drawings.forEach(d => {
+        if (d.points.length < 2) return;
+        const isSelected = state.selectedDrawing && state.selectedDrawing.id === d.id;
+
+        c.save();
+
+        if (state.fxGlow) {
+            c.shadowBlur  = isSelected ? 40 : 20;
+            c.shadowColor = isSelected ? '#ffff00' : d.color;
+        }
+
+        // Outer glow layer
+        c.strokeStyle = isSelected ? '#ffff00' : d.color;
+        c.lineWidth   = (isSelected ? d.size + 4 : d.size + 3);
+        c.globalAlpha = 0.4;
+        drawSmoothPath(c, d.points);
+
+        // Core
+        c.globalAlpha = 0.9;
+        c.lineWidth   = isSelected ? d.size + 2 : d.size;
+        c.strokeStyle = isSelected ? '#ffff00' : d.color;
+        drawSmoothPath(c, d.points);
+
+        // Bright center
+        c.globalAlpha = 0.7;
+        c.strokeStyle = isSelected ? '#fffde7' : adjustColor(d.color, 80);
+        c.lineWidth   = Math.max(1, d.size - 2);
+        c.shadowBlur  = 0;
+        drawSmoothPath(c, d.points);
+
+        // Animated pulse for selected
+        if (isSelected) {
+            const phase = (Date.now() % 1000) / 1000;
+            c.globalAlpha = 0.3 * Math.sin(phase * Math.PI * 2) * 0.5 + 0.5;
+            c.strokeStyle = '#ffff00';
+            c.lineWidth   = d.size + 8;
+            c.shadowBlur  = 25;
+            drawSmoothPath(c, d.points);
+        }
+
+        c.restore();
+    });
+}
+
+function drawSmoothPath(c, points) {
+    c.beginPath();
+    c.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length - 1; i++) {
+        const mx = (points[i].x + points[i+1].x) / 2;
+        const my = (points[i].y + points[i+1].y) / 2;
+        c.quadraticCurveTo(points[i].x, points[i].y, mx, my);
+    }
+    const last = points[points.length - 1];
+    c.lineTo(last.x, last.y);
+    c.stroke();
+}
+
+function adjustColor(hex, amount) {
+    // Lighten color
+    let c = hex.replace('#','');
+    if (c.length === 3) c = c.split('').map(x=>x+x).join('');
+    const num = parseInt(c, 16);
+    const r = Math.min(255, ((num >> 16) & 255) + amount);
+    const g = Math.min(255, ((num >>  8) & 255) + amount);
+    const b = Math.min(255,  (num        & 255) + amount);
+    return `rgb(${r},${g},${b})`;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER — NEON SKELETON
+// ─────────────────────────────────────────────────────────────
+const HAND_CONNECTIONS = [
+    [0,1],[1,2],[2,3],[3,4],
+    [0,5],[5,6],[6,7],[7,8],
+    [5,9],[9,10],[10,11],[11,12],
+    [9,13],[13,14],[14,15],[15,16],
+    [13,17],[17,18],[18,19],[19,20],
+    [0,17]
+];
+
+const FINGER_COLORS = ['#00f2ff','#00f2ff','#00f2ff','#00f2ff','#00f2ff'];
+
+function drawNeonSkeleton(lm, c) {
+    const phase = (Date.now() % 2000) / 2000;
+    const pulse = 0.7 + 0.3 * Math.sin(phase * Math.PI * 2);
+
+    c.save();
+    c.lineCap = 'round';
+
+    // Draw connections
+    HAND_CONNECTIONS.forEach(([a, b]) => {
+        const pa = lmToCanvas(lm[a]);
+        const pb = lmToCanvas(lm[b]);
+
+        // Outer glow
+        c.shadowBlur  = 20 * pulse;
+        c.shadowColor = '#00f2ff';
+        c.strokeStyle = '#00f2ff';
+        c.lineWidth   = 4;
+        c.globalAlpha = 0.4 * pulse;
+        c.beginPath();
+        c.moveTo(pa.x, pa.y);
+        c.lineTo(pb.x, pb.y);
+        c.stroke();
+
+        // Core line
+        c.globalAlpha = 0.9;
+        c.lineWidth   = 2;
+        c.shadowBlur  = 10;
+        c.beginPath();
+        c.moveTo(pa.x, pa.y);
+        c.lineTo(pb.x, pb.y);
+        c.stroke();
+
+        // Electric effect randomly on some segments
+        if (Math.random() < 0.02) {
+            drawElectricSegment(pa, pb, '#00f2ff', c);
+        }
+    });
+
+    // Draw joint dots with pulse rings
+    lm.forEach((pt, idx) => {
+        const p = lmToCanvas(pt);
+        const isJoint = [4,8,12,16,20].includes(idx);
+        const r = isJoint ? 7 : 4;
+
+        // Pulse ring for fingertips
+        if (isJoint) {
+            c.globalAlpha = 0.3 * pulse;
+            c.strokeStyle = '#00f2ff';
+            c.lineWidth = 1.5;
+            c.shadowBlur = 10;
+            c.shadowColor = '#00f2ff';
+            c.beginPath();
+            c.arc(p.x, p.y, r + 6 + 4 * pulse, 0, Math.PI * 2);
+            c.stroke();
+        }
+
+        // Main dot
+        const grad = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.5, '#00f2ff');
+        grad.addColorStop(1, 'rgba(0,242,255,0)');
+
+        c.globalAlpha = 1;
+        c.shadowBlur = 15 * pulse;
+        c.shadowColor = '#00f2ff';
+        c.fillStyle = grad;
+        c.beginPath();
+        c.arc(p.x, p.y, r, 0, Math.PI * 2);
+        c.fill();
+    });
+
+    c.restore();
+}
+
+function drawElectricSegment(a, b, color, c) {
+    c.save();
+    c.globalAlpha = 0.6;
+    c.strokeStyle = color;
+    c.lineWidth = 1;
+    c.shadowBlur = 8;
+    c.shadowColor = color;
+
+    const steps = 6;
+    const pts = [a];
+    for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const mx = a.x + (b.x - a.x) * t + (Math.random() - 0.5) * 15;
+        const my = a.y + (b.y - a.y) * t + (Math.random() - 0.5) * 15;
+        pts.push({ x: mx, y: my });
+    }
+    pts.push(b);
+
+    c.beginPath();
+    c.moveTo(pts[0].x, pts[0].y);
+    for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].y);
+    c.stroke();
+    c.restore();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER — FINGER CURSOR
+// ─────────────────────────────────────────────────────────────
+function drawFingerCursor(x, y, gesture, c) {
+    const phase = (Date.now() % 800) / 800;
+    const pulse = 0.5 + 0.5 * Math.sin(phase * Math.PI * 2);
+
+    c.save();
+
+    if (gesture === 'POINT') {
+        // Laser crosshair
+        const r1 = 18, r2 = 30;
+        const colors = [getActiveColor(), '#ffffff'];
+
+        colors.forEach((col, ci) => {
+            c.strokeStyle = col;
+            c.lineWidth = ci === 0 ? 2 : 0.8;
+            c.shadowBlur = ci === 0 ? 20 : 0;
+            c.shadowColor = col;
+            c.globalAlpha = ci === 0 ? 0.9 : 0.5;
+
+            // Crosshair lines
+            const off = 6;
+            c.beginPath();
+            c.moveTo(x - r2, y); c.lineTo(x - off, y);
+            c.moveTo(x + off, y); c.lineTo(x + r2, y);
+            c.moveTo(x, y - r2); c.lineTo(x, y - off);
+            c.moveTo(x, y + off); c.lineTo(x, y + r2);
+            c.stroke();
+
+            // Circle
+            c.beginPath();
+            c.arc(x, y, r1 + 4 * pulse, 0, Math.PI * 2);
+            c.stroke();
+        });
+
+        // Center dot
+        c.fillStyle = getActiveColor();
+        c.shadowBlur = 15;
+        c.shadowColor = getActiveColor();
+        c.globalAlpha = 1;
+        c.beginPath();
+        c.arc(x, y, 3, 0, Math.PI * 2);
+        c.fill();
+
+        // Rotation lines
+        c.strokeStyle = getActiveColor();
+        c.lineWidth = 1;
+        c.globalAlpha = 0.4;
+        for (let i = 0; i < 8; i++) {
+            const ang = (i / 8) * Math.PI * 2 + phase * Math.PI * 2;
+            const r = 22 + 4 * pulse;
+            c.beginPath();
+            c.moveTo(x + Math.cos(ang) * r, y + Math.sin(ang) * r);
+            c.lineTo(x + Math.cos(ang) * (r + 6), y + Math.sin(ang) * (r + 6));
+            c.stroke();
+        }
+    }
+
+    else if (gesture === 'PINCH') {
+        // Pinch indicator
+        const mid = { x, y };
+        c.strokeStyle = '#ffff00';
+        c.shadowColor = '#ffff00';
+        c.shadowBlur = 20;
+        c.lineWidth = 2;
+        c.globalAlpha = 0.8;
+        c.beginPath();
+        c.arc(mid.x, mid.y, 16 + 6 * pulse, 0, Math.PI * 2);
+        c.stroke();
+
+        c.fillStyle = '#ffff00';
+        c.globalAlpha = 0.5 * pulse;
+        c.beginPath();
+        c.arc(mid.x, mid.y, 8, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    else if (gesture === 'PEACE') {
+        // Erase circle
+        c.strokeStyle = '#ff6600';
+        c.shadowColor = '#ff6600';
+        c.shadowBlur = 20;
+        c.lineWidth = 2;
+        c.globalAlpha = 0.8;
+        c.setLineDash([5, 5]);
+        c.beginPath();
+        c.arc(x, y, state.eraseRadius, 0, Math.PI * 2);
+        c.stroke();
+        c.setLineDash([]);
+    }
+
+    c.restore();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER — AMBIENT PARTICLES
+// ─────────────────────────────────────────────────────────────
+function updateAmbientParticles(c) {
+    state.ambientParticles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.twinkle += 0.03;
+        const twinkleAlpha = p.alpha * (0.5 + 0.5 * Math.sin(p.twinkle));
+
+        c.save();
+        c.globalAlpha = twinkleAlpha;
+        c.fillStyle = p.color;
+        c.shadowBlur = 6;
+        c.shadowColor = p.color;
+        c.beginPath();
+        c.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+
+        if (p.y < -10) {
+            state.ambientParticles[i] = createAmbientParticle(false);
+        }
+    });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MAIN RENDER LOOP
+// ─────────────────────────────────────────────────────────────
+function renderFrame(c) {
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = '#000000';
+    c.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Background grid (subtle)
+    drawBgGrid(c);
+
+    // Ambient particles
+    updateAmbientParticles(c);
+
+    // Stored drawings
+    drawStoredPaths(c);
+
+    // Energy rings
+    for (let i = state.energyRings.length - 1; i >= 0; i--) {
+        state.energyRings[i].update();
+        state.energyRings[i].draw(c);
+        if (state.energyRings[i].life <= 0) state.energyRings.splice(i, 1);
+    }
+
+    // Shockwaves
+    for (let i = state.shockwaves.length - 1; i >= 0; i--) {
+        state.shockwaves[i].update();
+        state.shockwaves[i].draw(c);
+        if (state.shockwaves[i].life <= 0) state.shockwaves.splice(i, 1);
+    }
+
+    // Trail particles
+    for (let i = state.trailParticles.length - 1; i >= 0; i--) {
+        state.trailParticles[i].update();
+        state.trailParticles[i].draw(c);
+        if (state.trailParticles[i].life <= 0) state.trailParticles.splice(i, 1);
+    }
+
+    // Main particles (sparks, plasma, lightning)
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        state.particles[i].update();
+        state.particles[i].draw(c);
+        if (state.particles[i].life <= 0) state.particles.splice(i, 1);
+    }
+
+    // Hand skeleton + cursor
+    if (state.handVisible) {
+        drawNeonSkeleton(state._lastLandmarks, c);
+        drawFingerCursor(state.fingerPos.x, state.fingerPos.y, state.currentGesture, c);
+    }
+
+    // Update stats
+    updateStats();
+
+    // FPS
+    updateFPS();
+}
+
+function drawBgGrid(c) {
+    const gridSize = 80;
+    const phase = (Date.now() % 8000) / 8000;
+
+    c.save();
+    c.strokeStyle = 'rgba(0,242,255,0.03)';
+    c.lineWidth = 1;
+
+    for (let x = 0; x < canvas.width; x += gridSize) {
+        c.beginPath();
+        c.moveTo(x, 0);
+        c.lineTo(x, canvas.height);
+        c.stroke();
+    }
+
+    for (let y = 0; y < canvas.height; y += gridSize) {
+        c.beginPath();
+        c.moveTo(0, y);
+        c.lineTo(canvas.width, y);
+        c.stroke();
+    }
+
+    // Moving scan line on background
+    const scanY = phase * canvas.height;
+    const scanGrad = c.createLinearGradient(0, scanY - 40, 0, scanY + 40);
+    scanGrad.addColorStop(0, 'rgba(0,242,255,0)');
+    scanGrad.addColorStop(0.5, 'rgba(0,242,255,0.04)');
+    scanGrad.addColorStop(1, 'rgba(0,242,255,0)');
+    c.fillStyle = scanGrad;
+    c.fillRect(0, scanY - 40, canvas.width, 80);
+
+    c.restore();
+}
+
+function updateStats() {
+    statStrokes.textContent  = state.drawings.length;
+    let pts = 0;
+    state.drawings.forEach(d => pts += d.points.length);
+    state.totalPoints = pts;
+    statPoints.textContent   = pts;
+    statParticles.textContent = state.particles.length + state.trailParticles.length;
+}
+
+function updateFPS() {
+    state.frameCount++;
+    const now = performance.now();
+    if (now - state.lastFpsTime > 500) {
+        state.fps = Math.round(state.frameCount * 1000 / (now - state.lastFpsTime));
+        fpsDisplay.textContent = state.fps + ' FPS';
+        state.frameCount = 0;
+        state.lastFpsTime = now;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  GESTURE → ACTION
+// ─────────────────────────────────────────────────────────────
+function handleGesture(lm) {
+    const gesture = detectGesture(lm);
+    const ix = lm[8].x * canvas.width;
+    const iy = lm[8].y * canvas.height;
+    const tx = lm[4].x * canvas.width;
+    const ty = lm[4].y * canvas.height;
+    const midX = (ix + tx) / 2;
+    const midY = (iy + ty) / 2;
+
+    state.fingerPos = { x: ix, y: iy };
+    state.thumbPos  = { x: tx, y: ty };
+
+    // Gesture change effects
+    if (gesture !== state.prevGesture) {
+        onGestureChange(state.prevGesture, gesture, ix, iy);
+        state.prevGesture = gesture;
+    }
+
+    state.currentGesture = gesture;
+    updateModeBadge(gesture);
+    updateGestureName(gesture);
+
+    // ── POINT → DRAW
+    if (gesture === 'POINT') {
+        if (!state.currentPath) {
+            saveUndoState();
+            state.currentPath = {
+                points: [],
+                id: Date.now(),
+                color: getActiveColor(),
+                size: state.brushSize,
+            };
+            state.drawings.push(state.currentPath);
+            spawnShockwave(ix, iy);
+            spawnEnergyRing(ix, iy);
+        }
+
+        const prevPt = state.currentPath.points[state.currentPath.points.length - 1];
+        const newPt  = { x: ix, y: iy };
+
+        // Throttle points by distance
+        if (!prevPt || dist(prevPt, newPt) > 3) {
+            if (state.fxRainbow) {
+                state.currentPath.color = getRainbowColor();
+            }
+            state.currentPath.points.push(newPt);
+            spawnDrawEffect(ix, iy);
+        }
+
+        state.isDragging = false;
+        state.selectedDrawing = null;
+    }
+
+    // ── PINCH → MOVE
+    else if (gesture === 'PINCH') {
+        state.currentPath = null;
+
+        if (!state.isDragging) {
+            state.selectedDrawing = findDrawingAt(midX, midY);
+            if (state.selectedDrawing) {
+                state.isDragging = true;
+                state.lastFingerPos = { x: midX, y: midY };
+                spawnEnergyRing(midX, midY);
+                spawnSparks(midX, midY, 6);
+                showToast('GRABBED');
+            }
+        }
+
+        if (state.isDragging && state.selectedDrawing) {
+            const dx = midX - state.lastFingerPos.x;
+            const dy = midY - state.lastFingerPos.y;
+            state.selectedDrawing.points.forEach(p => { p.x += dx; p.y += dy; });
+            state.lastFingerPos = { x: midX, y: midY };
+
+            // Trail while dragging
+            if (Math.random() < 0.4) spawnNeonTrail(midX, midY);
+        }
+    }
+
+    // ── PEACE → ERASE
+    else if (gesture === 'PEACE') {
+        state.currentPath = null;
+        state.isDragging  = false;
+        state.selectedDrawing = null;
+
+        eraseAt(ix, iy);
+
+        // Erase effect
+        if (Math.random() < 0.3) {
+            spawnEnergyRing(ix, iy);
+            state.energyRings[state.energyRings.length - 1].color = '#ff6600';
+        }
+    }
+
+    // ── FIST → CLEAR ALL
+    else if (gesture === 'FIST') {
+        state.gestureFrames++;
+        if (state.gestureFrames === 30) {
+            clearAll();
+        }
+    }
+
+    // ── IDLE / OTHER
+    else {
+        state.currentPath = null;
+        state.isDragging  = false;
+        state.selectedDrawing = null;
+        state.gestureFrames = 0;
+    }
+
+    if (gesture !== 'FIST') state.gestureFrames = 0;
+}
+
+function onGestureChange(from, to, x, y) {
+    if (to === 'POINT') {
+        spawnEnergyRing(x, y);
+        spawnSparks(x, y, 8);
+    } else if (to === 'FIST') {
+        spawnShockwave(x, y);
+        spawnLightning(x, y, 5);
+    } else if (to === 'PEACE') {
+        spawnSparks(x, y, 5);
+    }
+
+    // End draw path
+    if (from === 'POINT' && state.currentPath) {
+        if (state.currentPath.points.length > 2) {
+            spawnShockwave(x, y);
+        }
+        state.currentPath = null;
+    }
+}
+
+function clearAll() {
+    saveUndoState();
+    state.drawings = [];
+    state.currentPath = null;
+    // Big explosion
+    for (let i = 0; i < 5; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        spawnShockwave(x, y);
+        spawnLightning(x, y, 5);
+        spawnSparks(x, y, 20);
+    }
+    showToast('CANVAS CLEARED');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  UI UPDATES
+// ─────────────────────────────────────────────────────────────
+function updateModeBadge(gesture) {
+    const map = {
+        POINT: ['draw',  'DRAW'],
+        PINCH: ['move',  'MOVE'],
+        PEACE: ['erase', 'ERASE'],
+        FIST:  ['erase', 'HOLD TO CLEAR'],
+        IDLE:  ['idle',  'IDLE'],
+        OPEN:  ['idle',  'OPEN'],
+        THREE: ['idle',  'THREE'],
+    };
+    const [cls, label] = map[gesture] || ['idle','IDLE'];
+    modeBadge.className = ``;
+    modeBadge.id = 'mode-badge';
+    modeBadge.classList.add(cls);
+    modeBadge.textContent = label;
+}
+
+let gestureTimeout;
+function updateGestureName(gesture) {
+    const labels = {
+        POINT: '✦ DRAW MODE ✦',
+        PINCH: '✦ MOVE MODE ✦',
+        PEACE: '✦ ERASE MODE ✦',
+        FIST:  '✦ HOLD TO CLEAR ✦',
+        IDLE:  '',
+        OPEN:  '',
+    };
+    const txt = labels[gesture] || '';
+    gestureNameEl.textContent = txt;
+    gestureNameEl.classList.toggle('visible', !!txt);
+}
+
+let toastTimer;
+function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MEDIAPIPE HANDLER
+// ─────────────────────────────────────────────────────────────
+function onResults(results) {
+    if (loadingScreen.style.display !== 'none') {
+        loadingScreen.style.display = 'none';
+        camDot.classList.remove('inactive');
+    }
+
+    renderFrame(ctx);
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        const lm = results.multiHandLandmarks[0];
+        state.handVisible   = true;
+        state._lastLandmarks = lm;
+        handDot.classList.remove('inactive');
+        handleGesture(lm);
+    } else {
+        state.handVisible    = false;
+        state.currentPath    = null;
+        state.isDragging     = false;
+        state.selectedDrawing = null;
+        state.currentGesture = 'IDLE';
+        handDot.classList.add('inactive');
+        updateModeBadge('IDLE');
+        updateGestureName('IDLE');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MEDIAPIPE SETUP
+// ─────────────────────────────────────────────────────────────
+const hands = new Hands({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+});
+
+hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.85,
+    minTrackingConfidence: 0.85,
+});
+
+hands.onResults(onResults);
+
+const camera = new Camera(videoElement, {
+    onFrame: async () => await hands.send({ image: videoElement }),
+    width: 1280, height: 720,
+});
+camera.start();
+
+// ─────────────────────────────────────────────────────────────
+//  UI BUTTON EVENTS
+// ─────────────────────────────────────────────────────────────
+
+// Color swatches
+document.querySelectorAll('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        state.color = sw.dataset.color;
+        state.fxRainbow = false;
+        document.getElementById('fx-rainbow').classList.remove('active');
+        showToast('COLOR: ' + state.color.toUpperCase());
+    });
+});
+
+// Brush slider
+brushSlider.addEventListener('input', () => {
+    state.brushSize = parseInt(brushSlider.value);
+    brushLabel.textContent = state.brushSize + 'px';
+});
+
+// Undo
+document.getElementById('btn-undo').addEventListener('click', () => {
+    if (state.undoStack.length === 0) { showToast('NOTHING TO UNDO'); return; }
+    state.redoStack.push(JSON.parse(JSON.stringify(state.drawings)));
+    state.drawings = state.undoStack.pop();
+    showToast('UNDO');
+});
+
+// Redo
+document.getElementById('btn-redo').addEventListener('click', () => {
+    if (state.redoStack.length === 0) { showToast('NOTHING TO REDO'); return; }
+    state.undoStack.push(JSON.parse(JSON.stringify(state.drawings)));
+    state.drawings = state.redoStack.pop();
+    showToast('REDO');
+});
+
+// Clear
+document.getElementById('btn-clear').addEventListener('click', () => {
+    clearAll();
+});
+
+// Save canvas as PNG
+document.getElementById('btn-save').addEventListener('click', () => {
+    const saveCanvas = document.createElement('canvas');
+    saveCanvas.width  = canvas.width;
+    saveCanvas.height = canvas.height;
+    const sc = saveCanvas.getContext('2d');
+    sc.fillStyle = '#000';
+    sc.fillRect(0, 0, saveCanvas.width, saveCanvas.height);
+
+    // Redraw paths only (no hand skeleton)
+    sc.lineCap = 'round'; sc.lineJoin = 'round';
+    state.drawings.forEach(d => {
+        if (d.points.length < 2) return;
+        sc.save();
+        sc.shadowBlur  = 20;
+        sc.shadowColor = d.color;
+        sc.strokeStyle = d.color;
+        sc.lineWidth   = d.size;
+        sc.beginPath();
+        sc.moveTo(d.points[0].x, d.points[0].y);
+        for (let i = 1; i < d.points.length; i++) sc.lineTo(d.points[i].x, d.points[i].y);
+        sc.stroke();
+        sc.restore();
+    });
+
+    const link = document.createElement('a');
+    link.download = 'laserhand-' + Date.now() + '.png';
+    link.href = saveCanvas.toDataURL('image/png');
+    link.click();
+    showToast('SAVED AS PNG');
+});
+
+// FX toggles
+document.getElementById('fx-sparks').addEventListener('click', function() {
+    state.fxSparks = !state.fxSparks;
+    this.classList.toggle('active', state.fxSparks);
+    showToast('SPARKS ' + (state.fxSparks ? 'ON' : 'OFF'));
+});
+
+document.getElementById('fx-glow').addEventListener('click', function() {
+    state.fxGlow = !state.fxGlow;
+    this.classList.toggle('active', state.fxGlow);
+    showToast('GLOW ' + (state.fxGlow ? 'ON' : 'OFF'));
+});
+
+document.getElementById('fx-rainbow').addEventListener('click', function() {
+    state.fxRainbow = !state.fxRainbow;
+    this.classList.toggle('active', state.fxRainbow);
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    showToast('RAINBOW ' + (state.fxRainbow ? 'ON' : 'OFF'));
+});
+
+document.getElementById('fx-pulse').addEventListener('click', function() {
+    state.fxPulse = !state.fxPulse;
+    this.classList.toggle('active', state.fxPulse);
+    showToast('PULSE FX ' + (state.fxPulse ? 'ON' : 'OFF'));
+});
+
+// Style
+document.getElementById('style-neon').addEventListener('click', function() {
+    setStyle('neon', this);
+});
+document.getElementById('style-laser').addEventListener('click', function() {
+    setStyle('laser', this);
+});
+document.getElementById('style-plasma').addEventListener('click', function() {
+    setStyle('plasma', this);
+});
+
+function setStyle(s, btn) {
+    state.styleMode = s;
+    document.querySelectorAll('#style-neon,#style-laser,#style-plasma').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showToast('STYLE: ' + s.toUpperCase());
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+    if (e.key === 'z' || e.key === 'Z') document.getElementById('btn-undo').click();
+    if (e.key === 'y' || e.key === 'Y') document.getElementById('btn-redo').click();
+    if (e.key === 'Delete' || e.key === 'Backspace') document.getElementById('btn-clear').click();
+    if (e.key === 's' || e.key === 'S') document.getElementById('btn-save').click();
+    if (e.key === 'r' || e.key === 'R') document.getElementById('fx-rainbow').click();
+    if (e.key === 'g' || e.key === 'G') document.getElementById('fx-glow').click();
+});
+
+// ─────────────────────────────────────────────────────────────
+//  MOUSE FALLBACK (for testing without hand tracking)
+// ─────────────────────────────────────────────────────────────
+let mouseDown = false;
+
+canvas.addEventListener('mousedown', e => {
+    mouseDown = true;
+    saveUndoState();
+    state.currentPath = {
+        points: [],
+        id: Date.now(),
+        color: getActiveColor(),
+        size: state.brushSize,
+    };
+    state.drawings.push(state.currentPath);
+    spawnEnergyRing(e.offsetX, e.offsetY);
+});
+
+canvas.addEventListener('mousemove', e => {
+    if (!mouseDown || !state.currentPath) return;
+    const x = e.offsetX, y = e.offsetY;
+    const prev = state.currentPath.points[state.currentPath.points.length - 1];
+    if (!prev || dist(prev, {x, y}) > 3) {
+        if (state.fxRainbow) state.currentPath.color = getRainbowColor();
+        state.currentPath.points.push({ x, y });
+        spawnDrawEffect(x, y);
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    mouseDown = false;
+    if (state.currentPath && state.currentPath.points.length < 2) {
+        state.drawings.pop();
+    }
+    state.currentPath = null;
+});
+
+canvas.addEventListener('mouseleave', () => {
+    mouseDown = false;
+    state.currentPath = null;
+});
+
+// ─────────────────────────────────────────────────────────────
+//  PARTICLE ANIMATION LOOP (runs independently for smooth FX)
+// ─────────────────────────────────────────────────────────────
+function animateParticlesOnly() {
+    if (!state.handVisible) {
+        renderFrame(ctx);
+    }
+    requestAnimationFrame(animateParticlesOnly);
+}
+
+// Start independent animation loop for ambient effects
+setTimeout(() => {
+    requestAnimationFrame(animateParticlesOnly);
+}, 100);
+
+// ─────────────────────────────────────────────────────────────
+//  RIPPLE ON CLICK
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+    if (e.target.closest('#ui-root')) return;
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple';
+    ripple.style.cssText = `
+        left: ${e.clientX - 30}px;
+        top: ${e.clientY - 30}px;
+        width: 60px; height: 60px;
+        background: radial-gradient(circle, rgba(0,242,255,0.4), transparent);
+        border: 1px solid rgba(0,242,255,0.5);
+    `;
+    document.body.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 700);
+});
+
+// ─────────────────────────────────────────────────────────────
+//  INITIAL DEMO ANIMATION
+// ─────────────────────────────────────────────────────────────
+setTimeout(() => {
+    // Spawn some welcome particles
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            spawnShockwave(canvas.width * 0.5, canvas.height * 0.5);
+            spawnEnergyRing(canvas.width * 0.5, canvas.height * 0.5);
+            spawnSparks(canvas.width * 0.5, canvas.height * 0.5, 15);
+        }, i * 200);
+    }
+}, 3000);
+
+// ─────────────────────────────────────────────────────────────
+//  SHOW HAND HAND TRACKING WELCOME
+// ─────────────────────────────────────────────────────────────
+setTimeout(() => {
+    showToast('SHOW YOUR HAND TO BEGIN');
+}, 3500);
+
+</script>
+</body>
+</html>
