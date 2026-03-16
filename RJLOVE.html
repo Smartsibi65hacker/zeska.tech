@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forever & Always 💙</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Pinyon+Script&family=Lato:wght@100;300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --deep:   #060d1a;
+  --mid:    #0a1830;
+  --glow:   #1a4a8a;
+  --bright: #2a7fff;
+  --light:  #5ba3ff;
+  --pale:   #a8d4ff;
+  --mist:   #d4ecff;
+  --cyan:   #00c8ff;
+  --silver: #c8ddf5;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  overflow: hidden;
+  background: var(--deep);
+  font-family: 'Cormorant Garamond', serif;
+  cursor: none;
+}
+
+/* ─── background ─────────────────────────────── */
+#bg {
+  position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -5%,  #0b2550 0%, transparent 65%),
+    radial-gradient(ellipse 55% 45% at 15% 85%,  #081b3a 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 85% 55%,  #091e40 0%, transparent 60%),
+    linear-gradient(180deg, #020810 0%, #060d1a 50%, #04090f 100%);
+}
+
+/* ─── stars ──────────────────────────────────── */
+#stars { position:fixed; inset:0; z-index:1; pointer-events:none; }
+.star {
+  position:absolute; border-radius:50%; background:#fff;
+  animation: twinkle ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,100% { opacity:.08; transform:scale(1); }
+  50%      { opacity:.85; transform:scale(1.5); }
+}
+
+/* ─── aurora ─────────────────────────────────── */
+#aurora { position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+.ab {
+  position:absolute; width:220%; left:-60%; border-radius:50%;
+  filter:blur(70px); mix-blend-mode:screen;
+  animation: auroraWave ease-in-out infinite;
+}
+.ab1 { height:320px; top:-100px; background:rgba(0,90,255,.07);  animation-duration:22s; }
+.ab2 { height:200px; top: -20px; background:rgba(0,160,255,.05); animation-duration:30s; animation-delay:-8s; }
+.ab3 { height:260px; top: -60px; background:rgba(20,50,180,.06); animation-duration:26s; animation-delay:-14s; }
+@keyframes auroraWave {
+  0%,100% { transform:translateX(0)    scaleY(1);   }
+  33%     { transform:translateX(-6%)  scaleY(1.12); }
+  66%     { transform:translateX(6%)   scaleY(.9);  }
+}
+
+/* ─── canvas ─────────────────────────────────── */
+#canvas { position:fixed; inset:0; z-index:3; pointer-events:none; }
+
+/* ─── centre stage ───────────────────────────── */
+#stage {
+  position:fixed; inset:0; z-index:10;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  pointer-events:none;
+}
+
+.title-wrap {
+  text-align:center;
+  opacity:0;
+  animation: riseIn 2.8s cubic-bezier(.22,1,.36,1) .3s forwards;
+}
+.eyebrow {
+  font-family:'Lato',sans-serif; font-weight:100;
+  letter-spacing:.45em; text-transform:uppercase;
+  font-size:clamp(9px,1.2vw,13px);
+  color:var(--pale); opacity:.65; margin-bottom:10px;
+}
+.main-title {
+  font-family:'Pinyon Script',cursive;
+  font-size:clamp(64px,10vw,130px);
+  line-height:1;
+  background:linear-gradient(135deg, var(--mist) 0%, var(--light) 35%, var(--cyan) 65%, var(--pale) 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation: titleGlow 7s ease-in-out infinite;
+}
+@keyframes titleGlow {
+  0%,100% { filter:drop-shadow(0 0 18px rgba(42,127,255,.35)); }
+  50%      { filter:drop-shadow(0 0 55px rgba(0,200,255,.75)); }
+}
+.subtitle {
+  font-style:italic; font-weight:300;
+  font-size:clamp(13px,2vw,19px);
+  color:var(--silver); letter-spacing:.22em;
+  margin-top:12px; opacity:.8;
+}
+
+/* divider */
+.divider {
+  display:flex; align-items:center; gap:18px; margin:22px 0;
+  opacity:0; animation:riseIn 2.8s cubic-bezier(.22,1,.36,1) .9s forwards;
+}
+.dline {
+  width:90px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(42,127,255,.5),transparent);
+}
+.dheart { font-size:17px; animation:pulse 2.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%,100% { transform:scale(1);    filter:drop-shadow(0 0 5px rgba(42,127,255,.5)); }
+  50%      { transform:scale(1.28); filter:drop-shadow(0 0 18px rgba(0,200,255,.9)); }
+}
+
+/* name pills */
+.names-cloud {
+  display:flex; flex-wrap:wrap; justify-content:center; gap:10px;
+  max-width:520px; margin-top:6px;
+  opacity:0; animation:riseIn 2.8s cubic-bezier(.22,1,.36,1) 1.4s forwards;
+}
+.pill {
+  font-style:italic; font-weight:300; letter-spacing:.1em;
+  font-size:clamp(13px,1.8vw,17px);
+  color:var(--mist);
+  padding:6px 20px;
+  border:1px solid rgba(91,163,255,.2);
+  border-radius:40px;
+  background:rgba(20,60,120,.18);
+  backdrop-filter:blur(14px);
+  pointer-events:all; cursor:pointer;
+  transition:border-color .5s, background .5s, color .5s, box-shadow .5s, transform .5s;
+  animation:pillBob ease-in-out infinite;
+}
+.pill:hover {
+  border-color:var(--cyan);
+  background:rgba(0,200,255,.1);
+  color:#fff;
+  box-shadow:0 10px 35px rgba(0,200,255,.22);
+  transform:translateY(-5px) scale(1.07) !important;
+}
+.p1{animation-duration:4.4s;}  .p2{animation-duration:5.1s;animation-delay:-1.2s;}
+.p3{animation-duration:3.9s;animation-delay:-2.4s;} .p4{animation-duration:5.6s;animation-delay:-.6s;}
+.p5{animation-duration:4.7s;animation-delay:-3.1s;} .p6{animation-duration:4.1s;animation-delay:-1.8s;}
+@keyframes pillBob {
+  0%,100%{transform:translateY(0);}
+  50%    {transform:translateY(-9px);}
+}
+
+/* verse */
+.verse {
+  position:fixed; bottom:36px; left:50%; transform:translateX(-50%);
+  z-index:10; text-align:center; pointer-events:none; white-space:nowrap;
+  opacity:0; animation:riseIn 2.8s cubic-bezier(.22,1,.36,1) 2s forwards;
+}
+.verse p {
+  font-style:italic; font-weight:300;
+  font-size:clamp(11px,1.3vw,14px);
+  color:rgba(168,212,255,.55); letter-spacing:.18em;
+}
+
+/* ambient ghost words */
+.ghost {
+  position:fixed; z-index:9; pointer-events:none; user-select:none;
+  font-family:'Pinyon Script',cursive;
+  animation:ghostDrift ease-in-out infinite;
+}
+@keyframes ghostDrift {
+  0%,100%{transform:translateY(0)   rotate(var(--r)); opacity:var(--o);}
+  50%    {transform:translateY(-18px) rotate(var(--r)); opacity:calc(var(--o)*1.6);}
+}
+
+/* cursor */
+#cursor-ring, #cursor-dot {
+  position:fixed; border-radius:50%; pointer-events:none; z-index:999;
+  transform:translate(-50%,-50%);
+}
+#cursor-ring {
+  width:28px; height:28px;
+  border:1px solid rgba(0,200,255,.65);
+  transition:width .3s,height .3s,border-color .3s;
+}
+#cursor-dot {
+  width:5px; height:5px;
+  background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);
+}
+
+/* ripple */
+.ripple {
+  position:fixed; border-radius:50%;
+  border:1px solid rgba(0,200,255,.6);
+  pointer-events:none; z-index:998;
+  transform:translate(-50%,-50%);
+  animation:rippleGrow .9s cubic-bezier(.22,1,.36,1) forwards;
+}
+@keyframes rippleGrow {
+  from{width:0;height:0;opacity:.9;}
+  to  {width:90px;height:90px;opacity:0;}
+}
+
+@keyframes riseIn {
+  from{opacity:0;transform:translateY(28px);}
+  to  {opacity:1;transform:translateY(0);}
+}
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="stars"></div>
+<div id="aurora">
+  <div class="ab ab1"></div>
+  <div class="ab ab2"></div>
+  <div class="ab ab3"></div>
+</div>
+<canvas id="canvas"></canvas>
+
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
+
+<div id="stage">
+  <div class="title-wrap">
+    <p class="eyebrow">with every heartbeat</p>
+    <h1 class="main-title">Forever Yours</h1>
+    <p class="subtitle">— written in starlight —</p>
+  </div>
+  <div class="divider">
+    <div class="dline"></div>
+    <span class="dheart">🖤</span>
+    <div class="dline"></div>
+  </div>
+  <div class="names-cloud">
+    <span class="pill p1">Ammu</span>
+    <span class="pill p2">Thango</span>
+    <span class="pill p3">Chello</span>
+    <span class="pill p4">RJ</span>
+    <span class="pill p5">Manju</span>
+    <span class="pill p6">My love</span>
+  </div>
+</div>
+
+<div class="verse">
+  <p>you are the calm in my chaos &nbsp;·&nbsp; the blue in my world</p>
+</div>
+
+<script>
+/* ═══ STARS ═══════════════════════════════════════════════ */
+(()=>{
+  const c=document.getElementById('stars');
+  for(let i=0;i<180;i++){
+    const s=document.createElement('div'); s.className='star';
+    const sz=Math.random()*1.9+.3;
+    s.style.cssText=`width:${sz}px;height:${sz}px;
+      left:${Math.random()*100}vw;top:${Math.random()*100}vh;
+      animation-duration:${2.5+Math.random()*6}s;
+      animation-delay:${-Math.random()*7}s;`;
+    c.appendChild(s);
+  }
+})();
+
+/* ═══ GHOST WORDS ══════════════════════════════════════════ */
+(()=>{
+  const words=['love','ammu','dream','thango','manju','rj','chello','heart','blue','forever','calm','yours','dear','angel'];
+  const szList=[38,52,32,62,44,48,36,58,40,54];
+  words.forEach((w,i)=>{
+    const el=document.createElement('div'); el.className='ghost';
+    const op=(0.04+Math.random()*.06).toFixed(3);
+    const r=(Math.random()*28-14).toFixed(1);
+    el.style.cssText=`
+      left:${Math.random()*92}vw;top:${Math.random()*92}vh;
+      font-size:${szList[i%szList.length]}px;
+      color:rgba(91,163,255,${op});
+      --r:${r}deg;--o:${op};
+      animation-duration:${5.5+Math.random()*7}s;
+      animation-delay:${-Math.random()*7}s;`;
+    el.textContent=w;
+    document.body.appendChild(el);
+  });
+})();
+
+/* ═══ CANVAS PARTICLES ══════════════════════════════════════ */
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=canvas.width=window.innerWidth;
+let H=canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; });
+
+const WORDS=['ammu','thango','chello','RJ','manju','love','calm','dear','blue','heart','mine','forever','always','angel','yours'];
+const particles=[];
+
+function rnd(a,b){return a+Math.random()*(b-a);}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+/* parametric heart path — silky smooth */
+function heartPath(ctx,x,y,r){
+  ctx.beginPath();
+  const steps=90;
+  for(let i=0;i<=steps;i++){
+    const t=(i/steps)*Math.PI*2;
+    const px=r*16*Math.pow(Math.sin(t),3);
+    const py=-r*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+    i===0?ctx.moveTo(x+px,y+py):ctx.lineTo(x+px,y+py);
+  }
+  ctx.closePath();
+}
+
+function spawnHeart(ox,oy,burst){
+  const glowing=burst||Math.random()>.55;
+  particles.push({
+    type:'heart',
+    x:ox??rnd(0,W),
+    y:oy??rnd(-50,-5),
+    r:rnd(burst?.6:1,burst?1.4:2.2),
+    speed:burst?rnd(-4,-1):rnd(.35,1.1),
+    vx:burst?rnd(-2,2):rnd(-.18,.18),
+    rot:rnd(0,Math.PI*2),
+    rotV:rnd(-.006,.006),
+    opacity:0,
+    targetOpacity:rnd(.5,.92),
+    sway:rnd(.4,1.3),
+    swayF:rnd(.008,.022),
+    swayT:Math.random()*Math.PI*2,
+    glowing,
+    burst:!!burst,
+    life:1,
+    decay:burst?.013:0,
+  });
+}
+
+function spawnWord(){
+  particles.push({
+    type:'word',
+    text:WORDS[Math.floor(Math.random()*WORDS.length)],
+    x:rnd(20,W-80),
+    y:rnd(-70,-5),
+    fs:rnd(11,21),
+    speed:rnd(.28,1.0),
+    vx:rnd(-.12,.12),
+    opacity:0,
+    targetOpacity:rnd(.3,.72),
+    sway:rnd(.5,1.6),
+    swayF:rnd(.007,.02),
+    swayT:Math.random()*Math.PI*2,
+    col:Math.random()>.5?'#a8d4ff':'#6ab4ff',
+    italic:Math.random()>.45,
+    life:1,
+    decay:0,
+  });
+}
+
+/* pre-warm — fill screen before user sees */
+for(let i=0;i<28;i++) spawnHeart(rnd(0,W), rnd(0,H));
+for(let i=0;i<18;i++) spawnWord();
+
+let last=performance.now();
+let hTimer=0, wTimer=0;
+
+function animate(now){
+  requestAnimationFrame(animate);
+  const dt=Math.min((now-last)/16.67,3);
+  last=now;
+
+  ctx.clearRect(0,0,W,H);
+
+  hTimer+=dt; wTimer+=dt;
+  if(hTimer>9){  hTimer=0; spawnHeart(); }
+  if(wTimer>14){ wTimer=0; spawnWord();  }
+
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+
+    /* smooth sway */
+    p.swayT+=p.swayF*dt;
+    const sw=Math.sin(p.swayT)*p.sway;
+
+    p.x+=(p.vx+sw*.04)*dt;
+    p.y+=p.speed*dt;
+    if(p.type==='heart') p.rot+=p.rotV*dt;
+
+    /* smooth fade-in */
+    p.opacity=lerp(p.opacity,p.targetOpacity,.045*dt);
+
+    /* burst gravity */
+    if(p.burst) p.speed=lerp(p.speed,.9,.025*dt);
+
+    /* decay fade-out */
+    if(p.decay>0){ p.life-=p.decay*dt; if(p.life<=0){particles.splice(i,1);continue;} }
+
+    if(p.y>H+80||p.y<-130){particles.splice(i,1);continue;}
+
+    const alpha=Math.max(0,Math.min(1, p.opacity*(p.decay>0?p.life:1) ));
+
+    if(p.type==='heart'){
+      ctx.save();
+      ctx.globalAlpha=alpha;
+      if(p.glowing){ ctx.shadowBlur=24; ctx.shadowColor='rgba(28,110,255,.5)'; }
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot);
+      heartPath(ctx,0,0,p.r);
+      const g=ctx.createRadialGradient(0,-p.r*4,p.r,0,p.r*4,p.r*18);
+      g.addColorStop(0,'#111e36');
+      g.addColorStop(.65,'#090e1c');
+      g.addColorStop(1,'rgba(18,56,120,.42)');
+      ctx.fillStyle=g;
+      ctx.fill();
+      ctx.strokeStyle=`rgba(42,140,255,${alpha*.36})`;
+      ctx.lineWidth=.7;
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.globalAlpha=alpha;
+      ctx.shadowBlur=10;
+      ctx.shadowColor='rgba(0,195,255,.36)';
+      ctx.font=`${p.italic?'italic ':''}${p.fs}px 'Cormorant Garamond',serif`;
+      ctx.fillStyle=p.col;
+      ctx.fillText(p.text,p.x+sw*1.8,p.y);
+      ctx.restore();
+    }
+  }
+}
+requestAnimationFrame(animate);
+
+/* ═══ LAGGED CURSOR ════════════════════════════════════════ */
+const ring=document.getElementById('cursor-ring');
+const dot =document.getElementById('cursor-dot');
+let mx=W/2,my=H/2,rx=W/2,ry=H/2;
+
+document.addEventListener('mousemove',e=>{ mx=e.clientX; my=e.clientY; });
+
+(function cursorLoop(){
+  requestAnimationFrame(cursorLoop);
+  dot.style.left=mx+'px'; dot.style.top=my+'px';
+  rx=lerp(rx,mx,.13); ry=lerp(ry,my,.13);
+  ring.style.left=Math.round(rx*10)/10+'px';
+  ring.style.top =Math.round(ry*10)/10+'px';
+})();
+
+/* ═══ CLICK BURST ══════════════════════════════════════════ */
+document.addEventListener('click',e=>{
+  const r=document.createElement('div'); r.className='ripple';
+  r.style.left=e.clientX+'px'; r.style.top=e.clientY+'px';
+  document.body.appendChild(r);
+  r.addEventListener('animationend',()=>r.remove());
+  for(let k=0;k<7;k++){
+    setTimeout(()=>spawnHeart(
+      e.clientX+rnd(-28,28),
+      e.clientY+rnd(-12,12),
+      true
+    ),k*45);
+  }
+});
+</script>
+</body>
+</html>
