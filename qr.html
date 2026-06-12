@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>AttendX — QR Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:        #0A0C0F;
+  --surface:   #111418;
+  --surf-el:   #181D24;
+  --surf-hi:   #1E2530;
+  --primary:   #00E5FF;
+  --primary-dk:#0097A7;
+  --accent:    #FF6B35;
+  --green:     #00FF88;
+  --red:       #FF3B5C;
+  --yellow:    #FFD700;
+  --purple:    #9B59B6;
+  --txt-1:     #ECF0F1;
+  --txt-2:     #8899AA;
+  --txt-m:     #445566;
+  --border:    #1E2D3D;
+  --border-gl: rgba(0,229,255,.2);
+  --grad-primary: linear-gradient(135deg,#00E5FF,#0097FF);
+  --grad-green:   linear-gradient(135deg,#00FF88,#00C853);
+  --grad-red:     linear-gradient(135deg,#FF3B5C,#B71C1C);
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl:24px;
+  --shadow-primary: 0 6px 24px rgba(0,229,255,.25);
+  --shadow-green:   0 6px 24px rgba(0,255,136,.2);
+  --shadow-red:     0 6px 24px rgba(255,59,92,.2);
+}
+html,body{height:100%;background:var(--bg);color:var(--txt-1);font-family:'Space Grotesk',sans-serif;overflow:hidden;user-select:none}
+button{font-family:'Space Grotesk',sans-serif;cursor:pointer;border:none;outline:none}
+input{font-family:'Space Grotesk',sans-serif;outline:none;border:none}
+svg{display:block}
+
+/* ── SCROLLBAR ──────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── GRID BACKGROUND ────────────────────────────────────── */
+.grid-bg{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(var(--border) 1px,transparent 1px),
+    linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:40px 40px;
+  opacity:.3;
+}
+.glow-top-right{
+  position:fixed;top:-100px;right:-100px;width:300px;height:300px;
+  border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,rgba(0,229,255,.06),transparent 70%);
+}
+
+/* ── APP SHELL ──────────────────────────────────────────── */
+#app{position:relative;z-index:1;height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto}
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+
+/* ── ORBITRON UTIL ──────────────────────────────────────── */
+.orbitron{font-family:'Orbitron',monospace}
+
+/* ── ANIMATIONS ─────────────────────────────────────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+@keyframes scanLine{0%{top:10px}100%{top:calc(100% - 12px)}}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 currentColor}50%{opacity:.7;box-shadow:0 0 8px 2px currentColor}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes shimmerSlide{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+.anim-fade-up{animation:fadeUp .45s ease both}
+.anim-fade{animation:fadeIn .3s ease both}
+.anim-scale{animation:scaleIn .5s cubic-bezier(.34,1.56,.64,1) both}
+.anim-slide-right{animation:slideInRight .35s ease both}
+
+/* ── SPLASH ─────────────────────────────────────────────── */
+#splash{
+  position:fixed;inset:0;z-index:100;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  background:var(--bg);
+}
+.splash-glow{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,229,255,.07),transparent 70%);
+  animation:pulse 2s infinite;
+}
+.splash-logo{
+  width:100px;height:100px;border-radius:28px;
+  background:var(--surf-el);border:1.5px solid rgba(0,229,255,.4);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(0,229,255,.2);
+  animation:fadeUp .5s .2s ease both;
+}
+.splash-logo svg{width:48px;height:48px;color:var(--primary)}
+.splash-title{
+  font-family:'Orbitron',monospace;font-size:36px;font-weight:800;
+  letter-spacing:4px;color:var(--txt-1);
+  margin-top:24px;animation:fadeUp .5s .4s ease both;
+}
+.splash-sub{
+  font-size:12px;color:var(--primary);letter-spacing:4px;font-weight:500;
+  margin-top:8px;animation:fadeUp .5s .6s ease both;
+}
+.splash-bar{
+  width:120px;height:3px;background:var(--border);border-radius:4px;
+  margin-top:60px;overflow:hidden;animation:fadeUp .5s .8s ease both;
+}
+.splash-bar-inner{
+  height:100%;width:0;border-radius:4px;background:var(--grad-primary);
+  transition:width 2.5s ease;
+}
+.splash-hint{
+  font-size:12px;color:var(--txt-m);margin-top:16px;
+  animation:fadeUp .5s 1s ease both;
+}
+.splash-ver{
+  position:absolute;bottom:32px;font-size:11px;color:var(--txt-m);letter-spacing:1px;
+  animation:fadeUp .5s 1.2s ease both;
+}
+
+/* ── LOGIN ──────────────────────────────────────────────── */
+#login{overflow-y:auto;padding:0}
+.login-inner{padding:0 24px 40px;min-height:100%}
+.login-header{display:flex;align-items:center;gap:12px;padding-top:48px}
+.login-logo-sm{
+  width:48px;height:48px;border-radius:14px;
+  background:var(--surf-el);border:1.5px solid rgba(0,229,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(0,229,255,.15);
+}
+.login-logo-sm svg{width:24px;height:24px;color:var(--primary)}
+.login-app-name{font-family:'Orbitron',monospace;font-size:22px;font-weight:800;letter-spacing:2px}
+.login-heading{font-family:'Orbitron',monospace;font-size:38px;font-weight:800;line-height:1.1;letter-spacing:1px;margin-top:48px}
+.login-sub{font-size:15px;color:var(--txt-2);margin-top:8px}
+
+.demo-tabs{display:flex;gap:8px;margin-top:40px}
+.demo-tab{
+  flex:1;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--surf-el);display:flex;align-items:center;gap:6px;
+  cursor:pointer;transition:all .2s;
+}
+.demo-tab.active{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.5)}
+.demo-tab svg{width:16px;height:16px;color:var(--txt-m);transition:color .2s}
+.demo-tab.active svg{color:var(--primary)}
+.demo-tab span{font-size:13px;color:var(--txt-2);font-weight:600;transition:color .2s}
+.demo-tab.active span{color:var(--primary)}
+
+.field-label{font-size:11px;font-weight:700;letter-spacing:1.5px;color:var(--txt-m);margin-top:20px;margin-bottom:8px}
+.field-wrap{position:relative}
+.field-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--txt-2)}
+.field-icon svg{width:20px;height:20px}
+.field{
+  width:100%;height:52px;padding:0 44px;
+  background:var(--surf-el);border:1.5px solid var(--border);
+  border-radius:var(--r-md);font-size:14px;color:var(--txt-1);
+  transition:border-color .2s,box-shadow .2s;
+}
+.field:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
+.field-eye{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;color:var(--txt-m);padding:4px;
+}
+.field-eye svg{width:20px;height:20px}
+
+.btn-glow{
+  width:100%;height:56px;border-radius:var(--r-md);
+  background:var(--grad-primary);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-size:15px;font-weight:700;letter-spacing:1.5px;color:var(--bg);
+  box-shadow:var(--shadow-primary);margin-top:32px;
+  transition:opacity .2s,transform .15s;
+}
+.btn-glow:active{opacity:.85;transform:scale(.98)}
+.btn-glow svg{width:20px;height:20px}
+.btn-glow.loading{pointer-events:none;background:rgba(0,229,255,.2);box-shadow:none;border:1.5px solid rgba(0,229,255,.3)}
+.spinner{width:22px;height:22px;border:2px solid rgba(0,229,255,.3);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+
+.info-card{
+  margin-top:32px;padding:16px;border-radius:var(--r-md);
+  background:var(--surf-el);border:1.5px solid var(--border);
+}
+.info-card-header{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.info-card-header svg{width:16px;height:16px;color:var(--primary)}
+.info-card-header span{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--primary)}
+.demo-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.demo-role{padding:2px 6px;border-radius:4px;background:rgba(0,229,255,.1);font-size:10px;font-weight:700;color:var(--primary)}
+.demo-cred{font-size:11px;color:var(--txt-2)}
+
+/* ── BOTTOM NAV ─────────────────────────────────────────── */
+#bottom-nav{
+  display:flex;align-items:center;justify-content:space-around;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:8px 0 max(8px,env(safe-area-inset-bottom));
+  flex-shrink:0;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 14px;border-radius:var(--r-md);cursor:pointer;
+  transition:all .2s;background:none;color:var(--txt-m);
+  position:relative;
+}
+.nav-item.active{background:rgba(0,229,255,.1);color:var(--primary)}
+.nav-item.scan-btn{
+  background:var(--grad-primary);color:var(--bg);
+  border-radius:var(--r-md);
+  box-shadow:0 0 16px rgba(0,229,255,.3);
+}
+.nav-item svg{width:22px;height:22px}
+.nav-item span{font-size:10px;font-weight:700}
+.nav-item.scan-btn svg{width:24px;height:24px}
+
+/* ── PAGE SCROLL AREA ───────────────────────────────────── */
+.page-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.page-pad{padding:20px}
+
+/* ── PAGE HEADER ────────────────────────────────────────── */
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px}
+.page-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;letter-spacing:2px}
+.page-sub{font-size:13px;color:var(--txt-m);margin-top:2px}
+
+/* ── AVATAR ─────────────────────────────────────────────── */
+.avatar{
+  width:48px;height:48px;border-radius:14px;flex-shrink:0;
+  background:var(--grad-primary);display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:20px;font-weight:800;color:var(--bg);
+}
+
+/* ── STATUS CARD ────────────────────────────────────────── */
+.status-card{
+  border-radius:var(--r-xl);padding:20px;
+  background:var(--surf-el);border:1.5px solid var(--border);
+  display:flex;align-items:center;gap:16px;
+  transition:border-color .3s,box-shadow .3s;
+}
+.status-card.checked-in{border-color:rgba(0,255,136,.4);box-shadow:0 0 24px rgba(0,255,136,.08)}
+.status-card.complete{border-color:rgba(0,229,255,.4);box-shadow:0 0 24px rgba(0,229,255,.08)}
+.status-icon{
+  width:64px;height:64px;border-radius:18px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(68,85,102,.15);border:1.5px solid var(--border);
+  transition:all .3s;
+}
+.status-icon svg{width:30px;height:30px;color:var(--txt-m);transition:color .3s}
+.status-card.checked-in .status-icon{background:rgba(0,255,136,.12);border-color:rgba(0,255,136,.3)}
+.status-card.checked-in .status-icon svg{color:var(--green)}
+.status-card.complete .status-icon{background:rgba(0,229,255,.12);border-color:rgba(0,229,255,.3)}
+.status-card.complete .status-icon svg{color:var(--primary)}
+.status-info{flex:1;min-width:0}
+.status-label{
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+  letter-spacing:1px;color:var(--txt-m);transition:color .3s;
+}
+.status-card.checked-in .status-label{color:var(--green)}
+.status-card.complete .status-label{color:var(--primary)}
+.status-hint{font-size:13px;color:var(--txt-2);margin-top:4px}
+.live-timer{
+  display:inline-flex;align-items:center;margin-top:8px;
+  padding:4px 10px;border-radius:6px;
+  background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;
+  color:var(--green);letter-spacing:1px;
+}
+.status-dot{
+  width:10px;height:10px;border-radius:50%;background:var(--txt-m);
+  flex-shrink:0;transition:all .3s;
+}
+.status-card.checked-in .status-dot{background:var(--green);box-shadow:0 0 8px rgba(0,255,136,.5)}
+.status-card.complete .status-dot{background:var(--primary);box-shadow:0 0 8px rgba(0,229,255,.5)}
+
+/* ── SECTION LABEL ──────────────────────────────────────── */
+.section-label{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--txt-m);margin-bottom:12px}
+
+/* ── QUICK ACTIONS ──────────────────────────────────────── */
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.quick-card{
+  padding:16px;border-radius:var(--r-lg);
+  background:var(--surf-el);border:1.5px solid var(--border);
+  cursor:pointer;transition:all .2s;
+}
+.quick-card:active{transform:scale(.97)}
+.quick-card-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:12px;
+}
+.quick-card-icon svg{width:22px;height:22px}
+.quick-card-title{font-size:15px;font-weight:700;color:var(--txt-1)}
+.quick-card-sub{font-size:12px;color:var(--txt-m);margin-top:2px}
+
+/* ── SUMMARY CARD ───────────────────────────────────────── */
+.summary-card{
+  display:flex;border-radius:var(--r-lg);padding:20px;
+  background:var(--surf-el);border:1.5px solid var(--border);
+}
+.summary-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px}
+.summary-item svg{width:18px;height:18px}
+.summary-item-label{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--txt-m)}
+.summary-item-value{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:var(--txt-m)}
+.summary-item-value.has-data{color:var(--txt-1)}
+.summary-divider{width:1px;background:var(--border);margin:0 4px}
+
+/* ── ATTENDANCE TILE ────────────────────────────────────── */
+.att-tile{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;border-radius:14px;
+  background:var(--surf-el);border:1.5px solid var(--border);
+  margin-bottom:10px;
+}
+.att-date-box{
+  width:44px;height:44px;border-radius:10px;
+  background:var(--surf-hi);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;flex-shrink:0;
+}
+.att-day{font-family:'Orbitron',monospace;font-size:16px;font-weight:800;color:var(--txt-1)}
+.att-day.today{color:var(--primary)}
+.att-mon{font-size:9px;color:var(--txt-m);letter-spacing:.5px}
+.att-info{flex:1;min-width:0}
+.att-title{font-size:14px;font-weight:600;color:var(--txt-1)}
+.att-times{font-size:12px;color:var(--txt-m);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.badge{
+  display:flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:6px;
+  font-size:10px;font-weight:700;
+}
+.badge svg{width:10px;height:10px}
+.badge-green{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);color:var(--green)}
+.badge-yellow{background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.3);color:var(--yellow)}
+.badge-red{background:rgba(255,59,92,.1);border:1px solid rgba(255,59,92,.3);color:var(--red)}
+.badge-cyan{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);color:var(--primary)}
+.att-dur{font-family:'Orbitron',monospace;font-size:11px;font-weight:600;color:var(--txt-m)}
+
+/* ── HISTORY PAGE ───────────────────────────────────────── */
+.stat-chips{display:flex;gap:10px;margin-bottom:20px}
+.stat-chip{
+  flex:1;padding:12px;border-radius:12px;text-align:center;
+}
+.stat-chip-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:800}
+.stat-chip-label{font-size:10px;color:var(--txt-m);margin-top:2px}
+
+/* ── WEEKLY CHART ───────────────────────────────────────── */
+.chart-card{
+  padding:16px;border-radius:var(--r-lg);
+  background:var(--surf-el);border:1.5px solid var(--border);
+  margin-bottom:20px;
+}
+.chart-title{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--txt-m);margin-bottom:12px}
+.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;height:72px;gap:4px}
+.chart-bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.chart-bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%}
+.chart-bar{
+  width:100%;border-radius:4px 4px 0 0;min-height:2px;
+  background:var(--border);transition:height .4s ease;
+}
+.chart-bar.has-hours{background:var(--grad-primary)}
+.chart-bar.full-day{background:var(--grad-green)}
+.chart-day-label{font-size:10px;color:var(--txt-m);font-family:'Space Grotesk',sans-serif}
+
+/* ── FILTER CHIPS ───────────────────────────────────────── */
+.filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-chip{
+  padding:8px 14px;border-radius:var(--r-sm);border:1.5px solid var(--border);
+  background:var(--surf-el);font-size:13px;font-weight:600;color:var(--txt-2);
+  white-space:nowrap;cursor:pointer;transition:all .2s;flex-shrink:0;
+}
+.filter-chip.active{background:var(--primary);border-color:var(--primary);color:var(--bg)}
+
+/* ── SCAN PAGE ──────────────────────────────────────────── */
+.scan-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px;flex-shrink:0;
+}
+.scan-mode-badge{
+  padding:4px 10px;border-radius:var(--r-sm);
+  background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);
+  font-family:'Orbitron',monospace;font-size:10px;font-weight:700;
+  letter-spacing:1px;color:var(--primary);
+}
+.scan-area{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:0 24px;gap:0;
+}
+.scan-box{
+  width:100%;max-width:320px;aspect-ratio:1;
+  background:var(--surface);border-radius:var(--r-2xl);
+  border:1.5px solid rgba(0,229,255,.3);
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.scan-corners{position:absolute;inset:0;pointer-events:none}
+.scan-corner{position:absolute;width:24px;height:24px}
+.scan-corner::before,.scan-corner::after{content:'';position:absolute;background:var(--primary);border-radius:2px}
+.scan-corner.tl{top:12px;left:12px}
+.scan-corner.tl::before{top:0;left:0;width:3px;height:100%}
+.scan-corner.tl::after{top:0;left:0;width:100%;height:3px}
+.scan-corner.tr{top:12px;right:12px}
+.scan-corner.tr::before{top:0;right:0;width:3px;height:100%}
+.scan-corner.tr::after{top:0;left:0;width:100%;height:3px}
+.scan-corner.bl{bottom:12px;left:12px}
+.scan-corner.bl::before{bottom:0;left:0;width:3px;height:100%}
+.scan-corner.bl::after{bottom:0;left:0;width:100%;height:3px}
+.scan-corner.br{bottom:12px;right:12px}
+.scan-corner.br::before{bottom:0;right:0;width:3px;height:100%}
+.scan-corner.br::after{bottom:0;left:0;width:100%;height:3px}
+.scan-line{
+  position:absolute;left:10px;right:10px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--primary),transparent);
+  box-shadow:0 0 8px rgba(0,229,255,.5);
+  animation:scanLine 2s ease-in-out infinite alternate;
+}
+.scan-inner-icon{color:rgba(0,229,255,.25)}
+.scan-inner-icon svg{width:80px;height:80px}
+.scan-demo-label{
+  font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;
+  font-weight:700;color:var(--primary);margin-top:20px;
+}
+.scan-demo-sub{font-size:12px;color:var(--txt-m);margin-top:6px}
+
+.scan-bottom{padding:24px;flex-shrink:0}
+.btn-scan-action{
+  width:100%;height:56px;border-radius:14px;
+  background:var(--grad-primary);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-size:15px;font-weight:700;letter-spacing:1.5px;color:var(--bg);
+  box-shadow:var(--shadow-primary);cursor:pointer;
+  transition:opacity .2s,transform .15s;border:none;
+}
+.btn-scan-action:active{opacity:.85;transform:scale(.98)}
+.btn-scan-action.checking{pointer-events:none;background:rgba(0,229,255,.2);box-shadow:none;border:1.5px solid rgba(0,229,255,.3);color:var(--primary)}
+.btn-scan-action svg{width:20px;height:20px}
+.scan-hint{text-align:center;font-size:12px;color:var(--txt-m);margin-top:12px}
+
+/* ── SCAN RESULT ────────────────────────────────────────── */
+.scan-result{
+  display:none;flex-direction:column;align-items:center;
+  justify-content:center;padding:24px;gap:0;flex:1;
+}
+.scan-result.visible{display:flex}
+.result-icon-wrap{
+  width:120px;height:120px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  animation:scaleIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.result-icon-wrap svg{width:56px;height:56px}
+.result-title{
+  font-family:'Orbitron',monospace;font-size:26px;font-weight:800;
+  letter-spacing:1px;margin-top:24px;text-align:center;
+  animation:fadeUp .4s .2s ease both;
+}
+.result-msg{
+  margin-top:12px;padding:16px;border-radius:14px;
+  font-size:14px;color:var(--txt-2);line-height:1.6;
+  text-align:center;animation:fadeUp .4s .3s ease both;
+  width:100%;
+}
+.btn-scan-again{
+  width:100%;height:52px;border-radius:var(--r-md);margin-top:32px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
+  border:1.5px solid var(--primary);color:var(--primary);
+  background:transparent;transition:all .2s;
+  animation:fadeUp .4s .4s ease both;
+}
+.btn-scan-again.success{background:var(--grad-primary);border-color:transparent;color:var(--bg);box-shadow:var(--shadow-primary)}
+.btn-scan-again:active{opacity:.8;transform:scale(.98)}
+.btn-scan-again svg{width:18px;height:18px}
+
+/* ── COMPLETE STATE ─────────────────────────────────────── */
+.complete-state{
+  display:none;flex-direction:column;align-items:center;
+  justify-content:center;padding:32px;gap:0;flex:1;text-align:center;
+}
+.complete-state.visible{display:flex}
+.complete-icon{
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(0,229,255,.1);
+  border:2px solid rgba(0,229,255,.3);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+}
+.complete-icon svg{width:48px;height:48px;color:var(--primary)}
+
+/* ── ADMIN PAGE ─────────────────────────────────────────── */
+.admin-stat-row{display:flex;gap:10px;margin-bottom:16px}
+.admin-stat{
+  flex:1;padding:14px;border-radius:14px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.admin-stat svg{width:20px;height:20px}
+.admin-stat-val{font-family:'Orbitron',monospace;font-size:24px;font-weight:800}
+.admin-stat-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt-m)}
+
+.tab-bar{
+  display:flex;background:var(--surf-el);border-radius:10px;
+  border:1.5px solid var(--border);margin-bottom:12px;padding:3px;
+}
+.tab-btn{
+  flex:1;height:38px;border-radius:8px;border:none;
+  font-size:13px;font-weight:700;color:var(--txt-m);
+  background:none;cursor:pointer;transition:all .2s;
+}
+.tab-btn.active{background:var(--primary);color:var(--bg)}
+
+.gen-qr-btn{
+  padding:10px 12px;border-radius:10px;
+  background:var(--primary);color:var(--bg);
+  font-size:12px;font-weight:700;letter-spacing:.5px;
+  display:flex;align-items:center;gap:6px;
+  border:none;cursor:pointer;transition:opacity .2s;
+}
+.gen-qr-btn:active{opacity:.8}
+.gen-qr-btn svg{width:16px;height:16px}
+
+.worker-card{
+  display:flex;align-items:center;gap:12px;
+  padding:14px;border-radius:14px;
+  background:var(--surf-el);border:1.5px solid var(--border);
+  margin-bottom:10px;
+}
+.worker-avatar{
+  width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  background:var(--grad-primary);display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:800;color:var(--bg);
+}
+.worker-info{flex:1;min-width:0}
+.worker-name{font-size:14px;font-weight:700;color:var(--txt-1)}
+.worker-time{font-size:12px;color:var(--txt-m);margin-top:2px}
+.worker-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.worker-dur{font-family:'Orbitron',monospace;font-size:10px;font-weight:600;color:var(--txt-m);margin-top:2px}
+
+/* ── QR OVERLAY ─────────────────────────────────────────── */
+#qr-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.85);display:none;
+  align-items:center;justify-content:center;padding:24px;
+}
+#qr-overlay.visible{display:flex}
+.qr-modal{
+  width:100%;max-width:380px;padding:24px;
+  background:var(--surface);border-radius:var(--r-2xl);
+  border:1.5px solid rgba(0,229,255,.3);
+  box-shadow:0 0 40px rgba(0,229,255,.15);
+}
+.qr-modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.qr-modal-title{
+  display:flex;align-items:center;gap:8px;
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+  letter-spacing:1px;color:var(--txt-1);
+}
+.qr-modal-title svg{width:20px;height:20px;color:var(--primary)}
+.qr-close{background:none;padding:4px;color:var(--txt-m);cursor:pointer}
+.qr-close svg{width:22px;height:22px}
+.qr-canvas-wrap{
+  background:#fff;border-radius:16px;padding:20px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 30px rgba(0,229,255,.2);
+  margin:0 auto 20px;width:fit-content;
+}
+#qr-canvas-el{display:block}
+.qr-info{font-size:13px;color:var(--txt-2);text-align:center;margin-bottom:12px}
+.qr-countdown-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:12px;
+  font-family:'Orbitron',monospace;font-size:14px;font-weight:700;
+}
+.qr-countdown-row svg{width:16px;height:16px}
+.qr-progress{height:4px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:20px}
+.qr-progress-bar{height:100%;border-radius:4px;background:var(--grad-primary);transition:width .5s linear}
+.btn-refresh-qr{
+  width:100%;height:48px;border-radius:10px;
+  border:1.5px solid var(--primary);color:var(--primary);
+  background:none;font-size:14px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;
+  transition:all .2s;
+}
+.btn-refresh-qr:active{background:rgba(0,229,255,.08)}
+.btn-refresh-qr svg{width:16px;height:16px}
+
+/* ── PROFILE PAGE ───────────────────────────────────────── */
+.profile-avatar-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px;background:var(--surf-el);border-radius:var(--r-xl);
+  border:1.5px solid var(--border);margin-bottom:20px;
+}
+.profile-avatar{
+  width:88px;height:88px;border-radius:50%;
+  background:var(--grad-primary);display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',monospace;font-size:32px;font-weight:800;color:var(--bg);
+  box-shadow:0 0 24px rgba(0,229,255,.3);margin-bottom:16px;
+}
+.profile-name{font-family:'Orbitron',monospace;font-size:20px;font-weight:700}
+.profile-email{font-size:13px;color:var(--txt-2);margin-top:4px}
+.role-badge{
+  margin-top:12px;padding:6px 12px;border-radius:var(--r-sm);
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;letter-spacing:1px;
+}
+.role-badge svg{width:14px;height:14px}
+.role-badge.worker{background:rgba(0,229,255,.12);border:1px solid rgba(0,229,255,.4);color:var(--primary)}
+.role-badge.admin{background:rgba(255,107,53,.12);border:1px solid rgba(255,107,53,.4);color:var(--accent)}
+
+.prof-stats{
+  display:flex;padding:20px;background:var(--surf-el);
+  border-radius:var(--r-xl);border:1.5px solid var(--border);margin-bottom:20px;
+}
+.prof-stat{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.prof-stat-val{font-family:'Orbitron',monospace;font-size:24px;font-weight:800}
+.prof-stat-label{font-size:11px;color:var(--txt-m)}
+
+.info-section{
+  padding:20px;background:var(--surf-el);
+  border-radius:var(--r-lg);border:1.5px solid var(--border);margin-bottom:20px;
+}
+.info-section-header{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.info-section-header svg{width:16px;height:16px;color:var(--primary)}
+.info-section-title{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--txt-m)}
+.info-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.info-row:last-child{margin-bottom:0}
+.info-row svg{width:16px;height:16px;color:var(--txt-m);flex-shrink:0}
+.info-row-label{font-size:13px;color:var(--txt-2);flex:1}
+.info-row-val{font-size:13px;font-weight:600;color:var(--txt-1)}
+
+.btn-signout{
+  width:100%;height:52px;border-radius:var(--r-md);
+  border:1.5px solid var(--red);color:var(--red);
+  background:none;font-size:14px;font-weight:700;letter-spacing:1px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  cursor:pointer;transition:all .2s;margin-bottom:40px;
+}
+.btn-signout:active{background:rgba(255,59,92,.08)}
+.btn-signout svg{width:18px;height:18px}
+
+/* ── EMPTY STATE ────────────────────────────────────────── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px 20px;gap:12px;
+}
+.empty-state svg{width:48px;height:48px;color:var(--txt-m)}
+.empty-state p{font-size:14px;color:var(--txt-m)}
+
+/* ── TOAST ──────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  z-index:300;padding:12px 20px;border-radius:12px;
+  background:var(--surf-hi);border:1.5px solid var(--border);
+  font-size:13px;color:var(--txt-1);white-space:nowrap;
+  display:flex;align-items:center;gap:8px;
+  opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast svg{width:16px;height:16px;flex-shrink:0}
+
+/* ── GAP UTILITY ────────────────────────────────────────── */
+.gap-4{height:4px}.gap-8{height:8px}.gap-12{height:12px}
+.gap-16{height:16px}.gap-20{height:20px}.gap-24{height:24px}
+.gap-32{height:32px}
+
+/* ── RESPONSIVE MOBILE FRAME ────────────────────────────── */
+@media(min-width:440px){
+  body{background:#050507;display:flex;align-items:center;justify-content:center}
+  #app{
+    height:min(900px,96dvh);border-radius:40px;overflow:hidden;
+    border:1px solid var(--border);
+    box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04);
+  }
+  #splash{border-radius:40px}
+}
+</style>
+</head>
+<body>
+
+<!-- GRID BACKGROUND -->
+<div class="grid-bg"></div>
+<div class="glow-top-right"></div>
+
+<!-- TOAST -->
+<div id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- QR OVERLAY -->
+<div id="qr-overlay">
+  <div class="qr-modal">
+    <div class="qr-modal-header">
+      <div class="qr-modal-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        ATTENDANCE QR CODE
+      </div>
+      <button class="qr-close" onclick="closeQR()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </button>
+    </div>
+    <div class="qr-canvas-wrap">
+      <div id="qr-canvas-el"></div>
+    </div>
+    <p class="qr-info">Office: HQ-001 · Main Campus</p>
+    <div class="qr-countdown-row" id="qr-countdown-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="qr-countdown-text">Expires in 60s</span>
+    </div>
+    <div class="qr-progress"><div class="qr-progress-bar" id="qr-progress-bar" style="width:100%"></div></div>
+    <button class="btn-refresh-qr" onclick="generateQR()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh QR
+    </button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app">
+
+  <!-- SPLASH -->
+  <div id="splash">
+    <div class="splash-glow"></div>
+    <div class="splash-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </div>
+    <div class="splash-title">AttendX</div>
+    <div class="splash-sub">QR ATTENDANCE SYSTEM</div>
+    <div class="splash-bar"><div class="splash-bar-inner" id="splash-bar"></div></div>
+    <div class="splash-hint">Initializing secure session...</div>
+    <div class="splash-ver">v1.0.0 · Secure · Enterprise</div>
+  </div>
+
+  <!-- ── LOGIN SCREEN ────────────────────────────────────── -->
+  <div class="screen" id="screen-login">
+    <div id="login" class="page-scroll">
+      <div class="login-inner">
+        <div class="login-header anim-fade-up">
+          <div class="login-logo-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="orbitron" style="font-size:22px;font-weight:800;letter-spacing:2px">AttendX</span>
+        </div>
+
+        <div class="login-heading anim-fade-up" style="animation-delay:.1s">Welcome<br>Back.</div>
+        <div class="login-sub anim-fade-up" style="animation-delay:.15s">Sign in to access your attendance dashboard</div>
+
+        <!-- Demo tabs -->
+        <div class="demo-tabs anim-fade-up" style="animation-delay:.2s">
+          <div class="demo-tab active" id="tab-worker" onclick="selectDemoAccount('worker')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Worker</span>
+          </div>
+          <div class="demo-tab" id="tab-admin" onclick="selectDemoAccount('admin')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Admin</span>
+          </div>
+        </div>
+
+        <div class="field-label anim-fade-up" style="animation-delay:.25s">EMAIL ADDRESS</div>
+        <div class="field-wrap anim-fade-up" style="animation-delay:.3s">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <input class="field" id="email-input" type="email" placeholder="you@company.com" value="alex@company.com"/>
+        </div>
+
+        <div class="field-label anim-fade-up" style="animation-delay:.35s">PASSWORD</div>
+        <div class="field-wrap anim-fade-up" style="animation-delay:.4s">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <input class="field" id="pass-input" type="password" placeholder="••••••••" value="password123"/>
+          <button class="field-eye" onclick="togglePass()" id="eye-btn">
+            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+
+        <button class="btn-glow anim-fade-up" id="login-btn" style="animation-delay:.45s" onclick="doLogin()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          SIGN IN
+        </button>
+
+        <div class="info-card anim-fade-up" style="animation-delay:.5s">
+          <div class="info-card-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>DEMO CREDENTIALS</span>
+          </div>
+          <div class="demo-row"><span class="demo-role">Worker</span><span class="demo-cred">alex@company.com / password123</span></div>
+          <div class="demo-row" style="margin-top:4px"><span class="demo-role">Admin</span><span class="demo-cred">admin@company.com / admin123</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAIN SCREENS (shown after login) ───────────────── -->
+  <div class="screen" id="screen-main" style="overflow:hidden">
+
+    <!-- HOME TAB -->
+    <div id="tab-home" class="page-scroll" style="display:block">
+      <div class="page-pad">
+        <div class="page-header anim-fade-up">
+          <div>
+            <div style="font-size:13px;color:var(--txt-m);letter-spacing:.5px" id="home-greeting">Good Morning,</div>
+            <div class="orbitron" style="font-size:22px;font-weight:700;letter-spacing:1px" id="home-username">User</div>
+            <div style="font-size:12px;color:var(--txt-m);margin-top:2px;letter-spacing:.5px" id="home-date"></div>
+          </div>
+          <div class="avatar" id="home-avatar">U</div>
+        </div>
+
+        <!-- Status Card -->
+        <div class="status-card anim-fade-up" id="status-card" style="animation-delay:.1s">
+          <div class="status-icon" id="status-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="status-info">
+            <div class="status-label" id="status-label">NOT CHECKED IN</div>
+            <div class="status-hint" id="status-hint">Scan QR code to check in</div>
+            <div class="live-timer" id="live-timer" style="display:none">00:00:00</div>
+          </div>
+          <div class="status-dot" id="status-dot"></div>
+        </div>
+
+        <div class="gap-20"></div>
+        <div class="section-label anim-fade-up" style="animation-delay:.2s">QUICK ACTIONS</div>
+        <div class="quick-grid anim-fade-up" style="animation-delay:.25s">
+          <div class="quick-card" onclick="switchTab('scan')" style="border-color:rgba(0,229,255,.2)">
+            <div class="quick-card-icon" style="background:rgba(0,229,255,.12)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+            <div class="quick-card-title">Scan QR</div>
+            <div class="quick-card-sub">Check in / out</div>
+          </div>
+          <div class="quick-card" onclick="switchTab('history')" style="border-color:rgba(155,89,182,.2)">
+            <div class="quick-card-icon" style="background:rgba(155,89,182,.12)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="quick-card-title">History</div>
+            <div class="quick-card-sub">View records</div>
+          </div>
+        </div>
+
+        <div class="gap-20"></div>
+        <div class="section-label anim-fade-up" style="animation-delay:.3s">TODAY'S SUMMARY</div>
+        <div class="summary-card anim-fade-up" id="summary-card" style="animation-delay:.35s">
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span class="summary-item-label">CHECK IN</span>
+            <span class="summary-item-value orbitron" id="sum-checkin">--:--</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span class="summary-item-label">CHECK OUT</span>
+            <span class="summary-item-value orbitron" id="sum-checkout">--:--</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="summary-item-label">DURATION</span>
+            <span class="summary-item-value orbitron" id="sum-duration">--</span>
+          </div>
+        </div>
+
+        <div class="gap-20"></div>
+        <div class="section-label anim-fade-up" style="animation-delay:.4s">RECENT ATTENDANCE</div>
+        <div id="home-history-list" class="anim-fade-up" style="animation-delay:.45s"></div>
+        <div class="gap-20"></div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="tab-history" class="page-scroll" style="display:none">
+      <div class="page-pad">
+        <div class="page-header anim-fade-up">
+          <div>
+            <div class="page-title">HISTORY</div>
+            <div class="page-sub">Last 30 days attendance record</div>
+          </div>
+        </div>
+        <div class="stat-chips anim-fade-up" style="animation-delay:.1s">
+          <div class="stat-chip" style="background:rgba(0,229,255,.08);border:1.5px solid rgba(0,229,255,.2)">
+            <div class="stat-chip-val orbitron" style="color:var(--primary)" id="hist-total">0</div>
+            <div class="stat-chip-label">Days Total</div>
+          </div>
+          <div class="stat-chip" style="background:rgba(0,255,136,.08);border:1.5px solid rgba(0,255,136,.2)">
+            <div class="stat-chip-val orbitron" style="color:var(--green)" id="hist-present">0</div>
+            <div class="stat-chip-label">Present</div>
+          </div>
+          <div class="stat-chip" style="background:rgba(255,215,0,.08);border:1.5px solid rgba(255,215,0,.2)">
+            <div class="stat-chip-val orbitron" style="color:var(--yellow)" id="hist-rate">0%</div>
+            <div class="stat-chip-label">Rate</div>
+          </div>
+        </div>
+        <div class="chart-card anim-fade-up" style="animation-delay:.2s">
+          <div class="chart-title">WEEKLY HOURS</div>
+          <div class="chart-bars" id="weekly-chart"></div>
+        </div>
+        <div class="filter-row anim-fade-up" id="filter-row" style="animation-delay:.25s"></div>
+        <div id="history-list" class="anim-fade-up" style="animation-delay:.3s"></div>
+        <div class="gap-20"></div>
+      </div>
+    </div>
+
+    <!-- SCAN TAB -->
+    <div id="tab-scan" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+      <div class="scan-header anim-fade">
+        <div class="orbitron" style="font-size:20px;font-weight:700;letter-spacing:2px">SCAN QR</div>
+        <div class="scan-mode-badge" id="scan-mode-badge">CHECK IN</div>
+      </div>
+
+      <!-- Scan UI (camera box + button) -->
+      <div id="scan-main" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+        <div class="scan-area">
+          <div class="scan-box">
+            <div class="scan-corners">
+              <div class="scan-corner tl"></div>
+              <div class="scan-corner tr"></div>
+              <div class="scan-corner bl"></div>
+              <div class="scan-corner br"></div>
+            </div>
+            <div class="scan-line"></div>
+            <div class="scan-inner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+          </div>
+          <div class="scan-demo-label">DEMO MODE ACTIVE</div>
+          <div class="scan-demo-sub">Camera disabled — tap button below</div>
+        </div>
+        <div class="scan-bottom">
+          <button class="btn-scan-action" id="scan-btn" onclick="doScan()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span id="scan-btn-label">SIMULATE CHECK IN</span>
+          </button>
+          <div class="scan-hint" id="scan-hint">Tap to mark your check-in</div>
+        </div>
+      </div>
+
+      <!-- Already complete state -->
+      <div class="complete-state" id="scan-complete">
+        <div class="complete-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="orbitron" style="font-size:22px;font-weight:700">Attendance Complete</div>
+        <div style="font-size:14px;color:var(--txt-2);margin-top:8px;text-align:center">You've completed your attendance for today.</div>
+        <div class="gap-24"></div>
+        <div class="summary-card" id="scan-complete-summary" style="width:100%;border-radius:var(--r-lg)">
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <span class="summary-item-label">CHECK IN</span>
+            <span class="summary-item-value orbitron" id="csum-checkin">--:--</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span class="summary-item-label">CHECK OUT</span>
+            <span class="summary-item-value orbitron" id="csum-checkout">--:--</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="summary-item-label">DURATION</span>
+            <span class="summary-item-value orbitron" id="csum-dur">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result overlay -->
+      <div class="scan-result" id="scan-result">
+        <div class="result-icon-wrap" id="result-icon-wrap">
+          <svg id="result-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="result-title" id="result-title">Checked In!</div>
+        <div class="result-msg" id="result-msg-box"></div>
+        <button class="btn-scan-again" id="btn-scan-again" onclick="resetScan()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          SCAN AGAIN
+        </button>
+      </div>
+    </div>
+
+    <!-- ADMIN TAB -->
+    <div id="tab-admin" class="page-scroll" style="display:none">
+      <div class="page-pad">
+        <div class="page-header anim-fade-up">
+          <div>
+            <div class="page-title">ADMIN</div>
+            <div class="page-sub" id="admin-date-sub"></div>
+          </div>
+          <button class="gen-qr-btn" onclick="generateQR()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            GEN QR
+          </button>
+        </div>
+
+        <div class="admin-stat-row anim-fade-up" style="animation-delay:.1s">
+          <div class="admin-stat" style="background:rgba(0,255,136,.08);border:1.5px solid rgba(0,255,136,.25)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="admin-stat-val" style="color:var(--green)" id="adm-present">0</div>
+            <div class="admin-stat-label">PRESENT</div>
+          </div>
+          <div class="admin-stat" style="background:rgba(255,59,92,.08);border:1.5px solid rgba(255,59,92,.25)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div class="admin-stat-val" style="color:var(--red)" id="adm-absent">0</div>
+            <div class="admin-stat-label">ABSENT</div>
+          </div>
+          <div class="admin-stat" style="background:rgba(0,229,255,.08);border:1.5px solid rgba(0,229,255,.25)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <div class="admin-stat-val" style="color:var(--primary)" id="adm-rate">0%</div>
+            <div class="admin-stat-label">RATE</div>
+          </div>
+        </div>
+
+        <div class="tab-bar anim-fade-up" style="animation-delay:.2s">
+          <button class="tab-btn active" id="adm-tab-present" onclick="switchAdminTab('present')">Present</button>
+          <button class="tab-btn" id="adm-tab-absent" onclick="switchAdminTab('absent')">Absent</button>
+        </div>
+
+        <div id="admin-worker-list" class="anim-fade-up" style="animation-delay:.25s"></div>
+      </div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div id="tab-profile" class="page-scroll" style="display:none">
+      <div class="page-pad">
+        <div class="page-header anim-fade-up">
+          <div class="page-title">PROFILE</div>
+        </div>
+
+        <div class="profile-avatar-wrap anim-fade-up" style="animation-delay:.1s">
+          <div class="profile-avatar" id="prof-avatar">U</div>
+          <div class="profile-name orbitron" id="prof-name">User</div>
+          <div class="profile-email" id="prof-email">user@company.com</div>
+          <div class="role-badge worker" id="prof-role-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span id="prof-role-label">WORKER</span>
+          </div>
+        </div>
+
+        <div class="prof-stats anim-fade-up" style="animation-delay:.2s">
+          <div class="prof-stat">
+            <div class="prof-stat-val orbitron" style="color:var(--green)" id="prof-present">0</div>
+            <div class="prof-stat-label">Present</div>
+          </div>
+          <div class="prof-stat">
+            <div class="prof-stat-val orbitron" style="color:var(--primary)" id="prof-total">0</div>
+            <div class="prof-stat-label">Days Tracked</div>
+          </div>
+          <div class="prof-stat">
+            <div class="prof-stat-val orbitron" style="color:var(--yellow)" id="prof-avg">0.0</div>
+            <div class="prof-stat-label">Avg Hours</div>
+          </div>
+        </div>
+
+        <div class="info-section anim-fade-up" style="animation-delay:.3s">
+          <div class="info-section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span class="info-section-title">DEVICE BINDING</span>
+          </div>
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span class="info-row-label">Device ID</span>
+            <span class="info-row-val" id="prof-device-id">••••••••••••</span>
+          </div>
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            <span class="info-row-label">Status</span>
+            <span class="info-row-val" style="color:var(--green)">Bound & Secured</span>
+          </div>
+        </div>
+
+        <div class="info-section anim-fade-up" style="animation-delay:.4s">
+          <div class="info-section-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            <span class="info-section-title">SETTINGS</span>
+          </div>
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span class="info-row-label">Office Location</span>
+            <span class="info-row-val">HQ-001 · Main Campus</span>
+          </div>
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            <span class="info-row-label">Radius Limit</span>
+            <span class="info-row-val">50m</span>
+          </div>
+          <div class="info-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="info-row-label">QR Expiry</span>
+            <span class="info-row-val">60s</span>
+          </div>
+        </div>
+
+        <button class="btn-signout anim-fade-up" style="animation-delay:.5s" onclick="doSignOut()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          SIGN OUT
+        </button>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div id="bottom-nav">
+      <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-item" id="nav-history" onclick="switchTab('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item scan-btn" id="nav-scan" onclick="switchTab('scan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Scan</span>
+      </button>
+      <button class="nav-item" id="nav-admin" onclick="switchTab('admin')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Admin</span>
+      </button>
+      <button class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </button>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const ACCOUNTS = {
+  'alex@company.com':  { uid:'worker_001', password:'password123', name:'Alex Johnson', role:'worker' },
+  'maria@company.com': { uid:'worker_002', password:'password123', name:'Maria Garcia', role:'worker' },
+  'admin@company.com': { uid:'admin_001',  password:'admin123',    name:'Sarah Chen',  role:'admin'  },
+};
+
+const WORKERS = {
+  worker_001: { name:'Alex Johnson',  email:'alex@company.com',  role:'worker' },
+  worker_002: { name:'Maria Garcia',  email:'maria@company.com', role:'worker' },
+  worker_003: { name:'James Wilson',  email:'james@company.com', role:'worker' },
+  worker_004: { name:'Priya Sharma',  email:'priya@company.com', role:'worker' },
+};
+
+let state = {
+  user: null,
+  todayRecord: null,
+  history: [],
+  allToday: [],
+  currentTab: 'home',
+  activeFilter: 'All',
+  adminTab: 'present',
+};
+
+let liveTimerInterval = null;
+let qrTimerInterval   = null;
+let qrCountdown       = 60;
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+const fmtTime = d => d ? new Date(d).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true}) : '--:--';
+const fmtDate = d => new Date(d).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+const todayStr = () => new Date().toISOString().slice(0,10);
+const pad2 = n => String(n).padStart(2,'0');
+
+function fmtDuration(ms){
+  if(!ms||ms<=0) return '--';
+  const s=Math.floor(ms/1000), m=Math.floor(s/60), h=Math.floor(m/60);
+  return `${h}h ${pad2(m%60)}m`;
+}
+function getInitials(name){
+  return name.split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase()||'U';
+}
+function getGreeting(){
+  const h=new Date().getHours();
+  return h<12?'Good Morning,':h<17?'Good Afternoon,':'Good Evening,';
+}
+
+// Simulated QR hash
+async function sha256mini(str){
+  try{
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,16);
+  }catch{ return Math.random().toString(36).slice(2,18); }
+}
+
+async function generateQRPayload(officeId){
+  const ts=Math.floor(Date.now()/1000);
+  const hash=await sha256mini(`${officeId}:${ts}:AttendX_Secret_2024`);
+  return { officeId, timestamp:ts, hash };
+}
+
+async function validateQRPayload(raw){
+  try{
+    const p=JSON.parse(raw);
+    const now=Math.floor(Date.now()/1000);
+    if(Math.abs(now-p.timestamp)>60) return {valid:false,reason:'expired'};
+    const expected=await sha256mini(`${p.officeId}:${p.timestamp}:AttendX_Secret_2024`);
+    if(p.hash!==expected) return {valid:false,reason:'invalid'};
+    return {valid:true,payload:p};
+  }catch{ return {valid:false,reason:'invalid'}; }
+}
+
+// Mock local attendance store
+const AttendanceDB = {
+  _data: {},
+  key(uid,date){ return `${uid}_${date}`; },
+  get(uid,date){ return this._data[this.key(uid,date)]||null; },
+  set(uid,date,rec){ this._data[this.key(uid,date)]=rec; },
+  getHistory(uid, days=30){
+    const out=[];
+    for(let i=0;i<days;i++){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      const ds=d.toISOString().slice(0,10);
+      const rec=this.get(uid,ds);
+      if(rec){ out.push(rec); continue; }
+      // Simulate some past data
+      if(i>0 && i%3!==0 && i<days-2){
+        const ci=new Date(d); ci.setHours(8+i%3,i%30,0,0);
+        const co=new Date(ci); co.setHours(ci.getHours()+8+i%2,ci.getMinutes(),0,0);
+        out.push({ id:this.key(uid,ds), userId:uid, date:ds,
+          userName:WORKERS[uid]?.name||'User',
+          checkIn:ci.getTime(), checkOut:co.getTime(),
+          checkInLat:12.9716, checkInLng:77.5946 });
+      }
+    }
+    return out;
+  },
+  getAllToday(){
+    const today=todayStr(), out=[];
+    const seen=new Set();
+    for(const k of Object.keys(this._data)){
+      const rec=this._data[k];
+      if(rec.date===today){ out.push(rec); seen.add(rec.userId); }
+    }
+    for(const uid of Object.keys(WORKERS)){
+      if(!seen.has(uid)){
+        out.push({ id:`${uid}_${today}`, userId:uid, date:today,
+          userName:WORKERS[uid].name, checkIn:null, checkOut:null });
+      }
+    }
+    return out;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// SPLASH
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  setTimeout(()=>{ document.getElementById('splash-bar').style.width='100%'; },100);
+  setTimeout(initApp, 2800);
+});
+
+function initApp(){
+  const saved=localStorage.getItem('attendx_user');
+  const splash=document.getElementById('splash');
+  splash.style.transition='opacity .4s';
+  splash.style.opacity='0';
+  setTimeout(()=>{ splash.style.display='none'; },400);
+
+  if(saved){
+    try{
+      state.user=JSON.parse(saved);
+      showMain();
+    }catch{ showLogin(); }
+  }else{ showLogin(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════
+function showLogin(){
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('screen-main').classList.remove('active');
+}
+function showMain(){
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-main').classList.add('active');
+  loadMainData();
+  updateHomeUI();
+  if(state.user?.role==='admin'){
+    document.getElementById('nav-admin').style.display='flex';
+  }
+}
+
+function selectDemoAccount(type){
+  const tabs={worker:'alex@company.com',admin:'admin@company.com'};
+  const passes={worker:'password123',admin:'admin123'};
+  document.getElementById('email-input').value=tabs[type];
+  document.getElementById('pass-input').value=passes[type];
+  document.getElementById('tab-worker').classList.toggle('active',type==='worker');
+  document.getElementById('tab-admin').classList.toggle('active',type==='admin');
+}
+
+function togglePass(){
+  const inp=document.getElementById('pass-input');
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+async function doLogin(){
+  const email=document.getElementById('email-input').value.trim().toLowerCase();
+  const pass=document.getElementById('pass-input').value;
+  const btn=document.getElementById('login-btn');
+
+  if(!email||!pass){ showToast('Please fill in all fields','warn'); return; }
+
+  btn.classList.add('loading');
+  btn.innerHTML='<div class="spinner"></div>';
+
+  await new Promise(r=>setTimeout(r,900));
+
+  const acc=ACCOUNTS[email];
+  if(!acc||acc.password!==pass){
+    btn.classList.remove('loading');
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>SIGN IN`;
+    showToast(acc?'Invalid password':'User not found','error');
+    return;
+  }
+
+  state.user={ uid:acc.uid, name:acc.name, email, role:acc.role, deviceId:'WEB-'+Math.random().toString(36).slice(2,10).toUpperCase() };
+  localStorage.setItem('attendx_user',JSON.stringify(state.user));
+  showMain();
+}
+
+function doSignOut(){
+  if(!confirm('Sign out of AttendX?')) return;
+  localStorage.removeItem('attendx_user');
+  state={user:null,todayRecord:null,history:[],allToday:[],currentTab:'home',activeFilter:'All',adminTab:'present'};
+  clearInterval(liveTimerInterval);
+  liveTimerInterval=null;
+  document.getElementById('screen-main').classList.remove('active');
+  // Reset nav
+  switchTab('home',true);
+  document.getElementById('nav-admin').style.display='none';
+  setTimeout(showLogin,100);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════════════════
+function loadMainData(){
+  if(!state.user) return;
+  state.todayRecord=AttendanceDB.get(state.user.uid, todayStr());
+  state.history=AttendanceDB.getHistory(state.user.uid, 30);
+  if(state.user.role==='admin'){
+    state.allToday=AttendanceDB.getAllToday();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const TABS=['home','history','scan','admin','profile'];
+
+function switchTab(tab, silent=false){
+  state.currentTab=tab;
+  TABS.forEach(t=>{
+    const el=document.getElementById(`tab-${t}`);
+    if(el) el.style.display='none';
+    const nav=document.getElementById(`nav-${t}`);
+    if(nav) nav.classList.remove('active');
+  });
+  const tabEl=document.getElementById(`tab-${tab}`);
+  if(tabEl){
+    tabEl.style.display=tab==='scan'?'flex':'block';
+  }
+  const navEl=document.getElementById(`nav-${tab}`);
+  if(navEl) navEl.classList.add('active');
+
+  if(!silent) refreshTab(tab);
+}
+
+function refreshTab(tab){
+  switch(tab){
+    case 'home':    updateHomeUI(); break;
+    case 'history': updateHistoryUI(); break;
+    case 'scan':    updateScanUI(); break;
+    case 'admin':   updateAdminUI(); break;
+    case 'profile': updateProfileUI(); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// HOME UI
+// ═══════════════════════════════════════════════════════════
+function updateHomeUI(){
+  if(!state.user) return;
+  const u=state.user;
+  document.getElementById('home-greeting').textContent=getGreeting();
+  document.getElementById('home-username').textContent=u.name;
+  document.getElementById('home-date').textContent=fmtDate(new Date());
+  document.getElementById('home-avatar').textContent=getInitials(u.name);
+
+  updateStatusCard();
+  updateSummaryCard();
+  renderHomeHistory();
+}
+
+function updateStatusCard(){
+  const r=state.todayRecord;
+  const card=document.getElementById('status-card');
+  const label=document.getElementById('status-label');
+  const hint=document.getElementById('status-hint');
+  const dot=document.getElementById('status-dot');
+  const timer=document.getElementById('live-timer');
+
+  card.classList.remove('checked-in','complete');
+  clearInterval(liveTimerInterval);
+  liveTimerInterval=null;
+  timer.style.display='none';
+
+  if(!r||!r.checkIn){
+    label.textContent='NOT CHECKED IN';
+    hint.textContent='Scan QR code to check in';
+  } else if(r.checkIn&&!r.checkOut){
+    card.classList.add('checked-in');
+    label.textContent='CHECKED IN';
+    hint.textContent=`Since ${fmtTime(r.checkIn)}`;
+    timer.style.display='inline-flex';
+    function tick(){
+      const ms=Date.now()-r.checkIn;
+      const h=Math.floor(ms/3600000);
+      const m=Math.floor((ms%3600000)/60000);
+      const s=Math.floor((ms%60000)/1000);
+      timer.textContent=`${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+    }
+    tick();
+    liveTimerInterval=setInterval(tick,1000);
+  } else if(r.checkIn&&r.checkOut){
+    card.classList.add('complete');
+    label.textContent='DAY COMPLETE';
+    hint.textContent=`Total: ${fmtDuration(r.checkOut-r.checkIn)}`;
+  }
+}
+
+function updateSummaryCard(){
+  const r=state.todayRecord;
+  document.getElementById('sum-checkin').textContent = r?.checkIn  ? fmtTime(r.checkIn)  : '--:--';
+  document.getElementById('sum-checkout').textContent= r?.checkOut ? fmtTime(r.checkOut) : '--:--';
+  const dur=r?.checkIn&&r?.checkOut ? fmtDuration(r.checkOut-r.checkIn) : '--';
+  const durEl=document.getElementById('sum-duration');
+  durEl.textContent=dur;
+  durEl.className='summary-item-value orbitron'+(dur!=='--'?' has-data':'');
+}
+
+function renderHomeHistory(){
+  const list=document.getElementById('home-history-list');
+  const recs=state.history.slice(0,5);
+  list.innerHTML=recs.length===0
+    ? '<div class="empty-state"><p>No recent records</p></div>'
+    : recs.map(renderAttTile).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// ATTENDANCE TILE HTML
+// ═══════════════════════════════════════════════════════════
+function renderAttTile(r){
+  const d=new Date(r.date+'T00:00:00');
+  const isToday=r.date===todayStr();
+  const day=d.getDate();
+  const mon=d.toLocaleDateString('en-US',{month:'short'});
+  const dayName=isToday?'Today':d.toLocaleDateString('en-US',{weekday:'long'});
+  let badgeHtml,dur='--';
+
+  if(r.checkIn&&r.checkOut){
+    dur=fmtDuration(r.checkOut-r.checkIn);
+    badgeHtml=`<span class="badge badge-green">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Complete</span>`;
+  } else if(r.checkIn&&!r.checkOut){
+    badgeHtml=`<span class="badge badge-yellow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      In Office</span>`;
+  } else {
+    badgeHtml=`<span class="badge badge-red">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      Absent</span>`;
+  }
+
+  const times=!r.checkIn?'No attendance'
+    :`${fmtTime(r.checkIn)} → ${r.checkOut?fmtTime(r.checkOut):'--'}`;
+
+  return `<div class="att-tile${isToday?' ':''}" style="${isToday?'border-color:rgba(0,229,255,.25)':''}">
+    <div class="att-date-box">
+      <span class="att-day${isToday?' today':''}">${day}</span>
+      <span class="att-mon">${mon}</span>
+    </div>
+    <div class="att-info">
+      <div class="att-title">${dayName}</div>
+      <div class="att-times">${times}</div>
+    </div>
+    <div class="att-right">
+      ${badgeHtml}
+      <span class="att-dur orbitron">${dur}</span>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// HISTORY UI
+// ═══════════════════════════════════════════════════════════
+const FILTERS=['All','Present','Absent','Complete'];
+
+function updateHistoryUI(){
+  const h=state.history;
+  const present=h.filter(r=>r.checkIn).length;
+  const rate=h.length?Math.round(present/h.length*100):0;
+  document.getElementById('hist-total').textContent=h.length;
+  document.getElementById('hist-present').textContent=present;
+  document.getElementById('hist-rate').textContent=rate+'%';
+
+  renderWeeklyChart();
+  renderFilterChips();
+  renderHistoryList();
+}
+
+function renderWeeklyChart(){
+  const chart=document.getElementById('weekly-chart');
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const ds=d.toISOString().slice(0,10);
+    const rec=AttendanceDB.get(state.user.uid,ds)||
+      state.history.find(r=>r.date===ds);
+    let hours=0;
+    if(rec?.checkIn&&rec?.checkOut) hours=(rec.checkOut-rec.checkIn)/3600000;
+    else if(rec?.checkIn) hours=(Date.now()-rec.checkIn)/3600000;
+    days.push({ label:d.toLocaleDateString('en-US',{weekday:'short'}), hours });
+  }
+  const max=10;
+  chart.innerHTML=days.map(d=>{
+    const pct=Math.min(d.hours/max,1)*100;
+    const cls=d.hours>=8?'full-day':d.hours>0?'has-hours':'';
+    return `<div class="chart-bar-col">
+      <div class="chart-bar-wrap">
+        <div class="chart-bar ${cls}" style="height:${Math.max(pct,2)}%"></div>
+      </div>
+      <span class="chart-day-label">${d.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderFilterChips(){
+  const row=document.getElementById('filter-row');
+  row.innerHTML=FILTERS.map(f=>`
+    <div class="filter-chip${f===state.activeFilter?' active':''}" onclick="setFilter('${f}')">${f}</div>
+  `).join('');
+}
+
+function setFilter(f){
+  state.activeFilter=f;
+  renderFilterChips();
+  renderHistoryList();
+}
+
+function renderHistoryList(){
+  let recs=[...state.history];
+  if(state.activeFilter==='Present')  recs=recs.filter(r=>r.checkIn);
+  if(state.activeFilter==='Absent')   recs=recs.filter(r=>!r.checkIn);
+  if(state.activeFilter==='Complete') recs=recs.filter(r=>r.checkIn&&r.checkOut);
+  const list=document.getElementById('history-list');
+  list.innerHTML=recs.length===0
+    ?'<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><p>No records found</p></div>'
+    :recs.map(renderAttTile).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCAN UI
+// ═══════════════════════════════════════════════════════════
+function updateScanUI(){
+  const r=state.todayRecord;
+  const badge=document.getElementById('scan-mode-badge');
+  const main=document.getElementById('scan-main');
+  const complete=document.getElementById('scan-complete');
+  const result=document.getElementById('scan-result');
+
+  result.classList.remove('visible');
+  complete.classList.remove('visible');
+  main.style.display='flex';
+
+  if(r?.checkIn&&r?.checkOut){
+    main.style.display='none';
+    complete.classList.add('visible');
+    badge.textContent='COMPLETE';
+    document.getElementById('csum-checkin').textContent=fmtTime(r.checkIn);
+    document.getElementById('csum-checkout').textContent=fmtTime(r.checkOut);
+    document.getElementById('csum-dur').textContent=fmtDuration(r.checkOut-r.checkIn);
+    return;
+  }
+
+  if(r?.checkIn&&!r?.checkOut){
+    badge.textContent='CHECK OUT';
+    document.getElementById('scan-btn-label').textContent='SIMULATE CHECK OUT';
+    document.getElementById('scan-hint').textContent='Tap to mark your check-out';
+  } else {
+    badge.textContent='CHECK IN';
+    document.getElementById('scan-btn-label').textContent='SIMULATE CHECK IN';
+    document.getElementById('scan-hint').textContent='Tap to mark your check-in';
+  }
+}
+
+async function doScan(){
+  const btn=document.getElementById('scan-btn');
+  btn.classList.add('checking');
+  btn.innerHTML='<div class="spinner" style="border-top-color:var(--primary)"></div><span style="color:var(--primary)">PROCESSING...</span>';
+
+  // Simulate delay + GPS + QR validation
+  await new Promise(r=>setTimeout(r,1200));
+
+  // Generate & validate a fresh QR
+  const payload=await generateQRPayload('HQ-001');
+  const raw=JSON.stringify(payload);
+  const validation=await validateQRPayload(raw);
+
+  btn.classList.remove('checking');
+
+  if(!validation.valid){
+    showScanResult(false, validation.reason==='expired'?'expired':'invalid',
+      'QR code is invalid or expired. Please try again.', false);
+    return;
+  }
+
+  // Process attendance
+  const uid=state.user.uid;
+  const today=todayStr();
+  let rec=AttendanceDB.get(uid,today);
+
+  if(!rec||!rec.checkIn){
+    // CHECK IN
+    rec={ id:`${uid}_${today}`, userId:uid, userName:state.user.name,
+      date:today, checkIn:Date.now(), checkOut:null,
+      checkInLat:12.9716, checkInLng:77.5946, officeId:'HQ-001' };
+    AttendanceDB.set(uid,today,rec);
+    state.todayRecord=rec;
+    loadMainData();
+    showScanResult(true,'checkin',`Checked in at ${fmtTime(rec.checkIn)}`,true);
+  } else if(rec.checkIn&&!rec.checkOut){
+    // CHECK OUT
+    rec={ ...rec, checkOut:Date.now(), checkOutLat:12.9716, checkOutLng:77.5946 };
+    AttendanceDB.set(uid,today,rec);
+    state.todayRecord=rec;
+    loadMainData();
+    showScanResult(true,'checkout',
+      `Checked out at ${fmtTime(rec.checkOut)} · ${fmtDuration(rec.checkOut-rec.checkIn)}`,true);
+  }
+}
+
+function showScanResult(success, type, msg, isSuccess){
+  const main=document.getElementById('scan-main');
+  const result=document.getElementById('scan-result');
+
+  main.style.display='none';
+  result.classList.add('visible');
+
+  const iconWrap=document.getElementById('result-icon-wrap');
+  const icon=document.getElementById('result-icon');
+  const title=document.getElementById('result-title');
+  const msgBox=document.getElementById('result-msg-box');
+  const again=document.getElementById('btn-scan-again');
+
+  let color,iconSvg,titleText;
+
+  if(type==='checkin'){
+    color='var(--green)'; titleText='Checked In!';
+    iconSvg='<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>';
+  } else if(type==='checkout'){
+    color='var(--primary)'; titleText='Checked Out!';
+    iconSvg='<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>';
+  } else if(type==='expired'){
+    color='var(--yellow)'; titleText='QR Expired';
+    iconSvg='<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>';
+  } else if(type==='location'){
+    color='var(--accent)'; titleText='Out of Range';
+    iconSvg='<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/><line x1="3" y1="3" x2="21" y2="21"/>';
+  } else {
+    color='var(--red)'; titleText='Scan Failed';
+    iconSvg='<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+  }
+
+  iconWrap.style.cssText=`background:${color}1a;border:2px solid ${color}66;box-shadow:0 0 30px ${color}33;`;
+  icon.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">${iconSvg}</svg>`;
+  icon.style.cssText='';
+  title.style.color=color;
+  title.textContent=titleText;
+  msgBox.textContent=msg;
+  msgBox.style.cssText=`background:${color}0d;border:1px solid ${color}33;`;
+
+  again.className='btn-scan-again'+(isSuccess?' success':'');
+}
+
+function resetScan(){
+  const main=document.getElementById('scan-main');
+  const result=document.getElementById('scan-result');
+  result.classList.remove('visible');
+  main.style.display='flex';
+
+  const btn=document.getElementById('scan-btn');
+  btn.classList.remove('checking');
+  btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+    <span id="scan-btn-label">SIMULATE CHECK IN</span>`;
+
+  updateScanUI();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADMIN UI
+// ═══════════════════════════════════════════════════════════
+function updateAdminUI(){
+  state.allToday=AttendanceDB.getAllToday();
+  document.getElementById('admin-date-sub').textContent=fmtDate(new Date());
+
+  const present=state.allToday.filter(r=>r.checkIn).length;
+  const absent=state.allToday.filter(r=>!r.checkIn).length;
+  const total=state.allToday.length;
+  const rate=total?Math.round(present/total*100):0;
+
+  document.getElementById('adm-present').textContent=present;
+  document.getElementById('adm-absent').textContent=absent;
+  document.getElementById('adm-rate').textContent=rate+'%';
+  renderAdminWorkerList();
+}
+
+function switchAdminTab(tab){
+  state.adminTab=tab;
+  document.getElementById('adm-tab-present').classList.toggle('active',tab==='present');
+  document.getElementById('adm-tab-absent').classList.toggle('active',tab==='absent');
+  renderAdminWorkerList();
+}
+
+function renderAdminWorkerList(){
+  const list=document.getElementById('admin-worker-list');
+  let recs=state.allToday;
+  if(state.adminTab==='present') recs=recs.filter(r=>r.checkIn);
+  else recs=recs.filter(r=>!r.checkIn);
+
+  if(!recs.length){
+    list.innerHTML=`<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <p>${state.adminTab==='present'?'No one checked in yet':'Everyone is present!'}</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML=recs.map(r=>{
+    const init=getInitials(r.userName);
+    const hasCheckin=r.checkIn;
+    const hasCheckout=r.checkOut;
+    const dotColor=hasCheckin&&hasCheckout?'var(--green)':hasCheckin?'var(--yellow)':'var(--red)';
+    const dur=hasCheckin&&hasCheckout?fmtDuration(r.checkOut-r.checkIn):'--';
+    const timeStr=!hasCheckin?'Not checked in'
+      :`In: ${fmtTime(r.checkIn)}${r.checkOut?` · Out: ${fmtTime(r.checkOut)}`:''}`;
+
+    return `<div class="worker-card">
+      <div class="worker-avatar">${init}</div>
+      <div class="worker-info">
+        <div class="worker-name">${r.userName}</div>
+        <div class="worker-time">${timeStr}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="worker-dot" style="background:${dotColor};box-shadow:0 0 6px ${dotColor}88"></div>
+        ${dur!=='--'?`<div class="worker-dur">${dur}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// QR GENERATOR
+// ═══════════════════════════════════════════════════════════
+let _qrInstance = null;
+
+async function generateQR(){
+  const overlay=document.getElementById('qr-overlay');
+  const el=document.getElementById('qr-canvas-el');
+  overlay.classList.add('visible');
+  el.innerHTML='';
+
+  const payload=await generateQRPayload('HQ-001');
+  const qrData=JSON.stringify(payload);
+
+  try{
+    _qrInstance=new QRCode(el,{
+      text:qrData, width:200, height:200,
+      colorDark:'#0A0C0F', colorLight:'#FFFFFF',
+      correctLevel:QRCode.CorrectLevel.M
+    });
+  }catch(e){ el.innerHTML=`<div style="width:200px;height:200px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#666;text-align:center;padding:20px">QRCode library unavailable in this environment</div>`; }
+
+  clearInterval(qrTimerInterval);
+  qrCountdown=60;
+  updateQRCountdown();
+  qrTimerInterval=setInterval(()=>{
+    qrCountdown--;
+    updateQRCountdown();
+    if(qrCountdown<=0){ clearInterval(qrTimerInterval); generateQR(); }
+  },1000);
+}
+
+function updateQRCountdown(){
+  const row=document.getElementById('qr-countdown-row');
+  const txt=document.getElementById('qr-countdown-text');
+  const bar=document.getElementById('qr-progress-bar');
+  const isExp=qrCountdown<10;
+  const pct=qrCountdown/60*100;
+  txt.textContent=`Expires in ${qrCountdown}s`;
+  bar.style.width=pct+'%';
+  const c=isExp?'var(--red)':'var(--primary)';
+  row.style.color=c;
+  bar.style.background=isExp?'var(--grad-red)':'var(--grad-primary)';
+}
+
+function closeQR(){
+  clearInterval(qrTimerInterval);
+  document.getElementById('qr-overlay').classList.remove('visible');
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE UI
+// ═══════════════════════════════════════════════════════════
+function updateProfileUI(){
+  const u=state.user;
+  if(!u) return;
+  document.getElementById('prof-avatar').textContent=getInitials(u.name);
+  document.getElementById('prof-name').textContent=u.name;
+  document.getElementById('prof-email').textContent=u.email;
+  document.getElementById('prof-device-id').textContent=
+    u.deviceId?u.deviceId.slice(0,14)+'...':'Not bound';
+
+  const rb=document.getElementById('prof-role-badge');
+  const rl=document.getElementById('prof-role-label');
+  rb.className='role-badge '+(u.role==='admin'?'admin':'worker');
+  rl.textContent=u.role==='admin'?'ADMINISTRATOR':'WORKER';
+  const rbIcon=rb.querySelector('svg');
+  if(u.role==='admin') rbIcon.innerHTML='<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>';
+  else rbIcon.innerHTML='<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>';
+
+  const h=state.history;
+  const present=h.filter(r=>r.checkIn).length;
+  const complete=h.filter(r=>r.checkIn&&r.checkOut);
+  const avgMs=complete.length
+    ? complete.reduce((a,r)=>a+(r.checkOut-r.checkIn),0)/complete.length
+    : 0;
+  document.getElementById('prof-present').textContent=present;
+  document.getElementById('prof-total').textContent=h.length;
+  document.getElementById('prof-avg').textContent=(avgMs/3600000).toFixed(1);
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════
+let toastTimer=null;
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  const m=document.getElementById('toast-msg');
+  m.textContent=msg;
+  const c=type==='error'?'var(--red)':type==='warn'?'var(--yellow)':type==='success'?'var(--green)':'var(--primary)';
+  t.querySelector('svg').style.color=c;
+  t.style.borderColor=c+'44';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
